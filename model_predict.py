@@ -41,10 +41,10 @@ class get_predict_result(object):
                     X = rs.scale()
                     st.write('Prediction data')
                     # st.table(X)
-                    st.table(df)
+                    st.table(X)
                     model = joblib.load(os.path.join("model/",clfmodel))
-                    # z = model.predict(X)
-                    z = model.predict(df.drop(columns='Start'))
+                    z = model.predict(X)
+                    # z = model.predict(df.drop(columns='Start'))
                     
                     res = pd.concat([rawdf,pd.DataFrame(z+1,columns=['Status'])],axis=1)
                     st.table(res.head())

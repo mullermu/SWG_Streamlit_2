@@ -16,7 +16,6 @@ import model_predict
 import glob
 import openpyxl 
 import csv
-import urllib
 # from streamlitapp.Data_Input import data_input
 
 
@@ -35,7 +34,7 @@ def form_callback():
 def listmodel(path):
     # return os.urllib(path)
     
-    return urllib.request(path)
+    return os.listdir(path)
 
 def listmachine(path):
     return os.listdir(path)
@@ -73,17 +72,17 @@ def st_header(data):
 
 def st_body():
     
-    url = 'https://raw.githubusercontent.com/mullermu/SWG_Streamlit/tree/main/streamlitapp/model/'
-    lstmodel = listmodel(url)
+    # url = 'https://raw.githubusercontent.com/mullermu/SWG_Streamlit/tree/main/streamlitapp/model/'
+    lstmodel = listmodel('/model/')
     st.write(lstmodel)
-    # tmp = [i.split('.')[0] for i in r]
-    # col1, col2, col3 = st.columns([1,10,1])
-    # with col2 :
-    #     with st.form(key='my_form'):
-    #         option = st.selectbox('Select Model:',tmp,key="my_option")
-    #         submitted = st.form_submit_button('selected model and predict')
-    #         if submitted:
-    #             st.write('You selected model: {}'.format(str(option)))
+    tmp = [i.split('.')[0] for i in r]
+    col1, col2, col3 = st.columns([1,10,1])
+    with col2 :
+        with st.form(key='my_form'):
+            option = st.selectbox('Select Model:',tmp,key="my_option")
+            submitted = st.form_submit_button('selected model and predict')
+            if submitted:
+                st.write('You selected model: {}'.format(str(option)))
     #             return r
                 
 

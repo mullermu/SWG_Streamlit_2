@@ -15,8 +15,8 @@ class Swg(object):
         scl = StandardScaler()
         X = scl.fit_transform(df.iloc[:,2:8].values)
         # X = df.iloc[:,2:8].values
-        st.write('StandardScalered')
-        st.table(X)
+        #st.write('StandardScalered')
+        #st.table(X)
         if df.shape[1] == 9:
             
             y = df.iloc[:,8].values

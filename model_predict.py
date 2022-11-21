@@ -20,7 +20,7 @@ class get_predict_result(object):
 
             return file_list
         def load_model():
-            clf = joblib.load(os.path.join("/model/",clfmodel))
+            clf = joblib.load(os.path.join("model/",clfmodel))
             return clf
         def predict_and_save(export = False):
             path_sheet  = "temp/"
@@ -41,7 +41,7 @@ class get_predict_result(object):
                     st.write('Prediction data')
                     # st.table(X)
                     st.table(df)
-                    model = joblib.load(os.path.join("/model/",clfmodel))
+                    model = joblib.load(os.path.join("model/",clfmodel))
                     # z = model.predict(X)
                     z = model.predict(df.drop(columns='Start'))
                     
@@ -49,7 +49,7 @@ class get_predict_result(object):
                     st.table(res.head())
                     all_df[file.split("/")[-1].split(".")[0]] = clf.predict(df.iloc[:,1:].values)
                     if export :     
-                        res.to_csv(f"/output/Predicted Results/{filename}.csv",index=False)
+                        res.to_csv(f"output/Predicted Results/{filename}.csv",index=False)
                         # res.to_excel("../output/Predicted Results/Results.xlsx", sheet_name=filename, index=False)
 
 
@@ -76,7 +76,7 @@ class get_predict_result(object):
             df2 = df.copy()
             df2.iloc[:,1:] = df2.iloc[:,1:] +1
             if export :
-                df2.to_csv("/output/Predicted Results/Dashboard/Predict_Dashboard.csv",index=False)
+                df2.to_csv("output/Predicted Results/Dashboard/Predict_Dashboard.csv",index=False)
                 
             else :
                 return df,df2

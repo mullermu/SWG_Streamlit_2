@@ -17,7 +17,7 @@ class MC_status(object):
             return inner_status_color()
 
         def read_machine_status(MCName):
-            path_sheet  = f"/output/Predicted Results/{MCName}.csv"
+            path_sheet  = f"output/Predicted Results/{MCName}.csv"
             # read_files = get_file(path_sheet)
             # for i,file in enumerate(tqdm(read_files)):
                 # filename = file.split("/")[-1].split(".")[0]
@@ -148,7 +148,7 @@ class MC_status(object):
 
             return file_list
 
-        path_sheet  = "/output/Predicted Results/"
+        path_sheet  = "output/Predicted Results/"
         read_files = get_file(path_sheet)
         for i,file in enumerate(tqdm(read_files)):
             filename = file.split("/")[-1].split(".")[0]

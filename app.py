@@ -25,7 +25,7 @@ def get_csv(df):
     
     return csv
 def get_data1(dtfile):
-    dtfile.to_csv (r'/Temp/temp.csv', index = False, header=True)
+    dtfile.to_csv (r'Temp/temp.csv', index = False, header=True)
 
 def form_callback():
     st.write(st.session_state.my_option)
@@ -85,6 +85,21 @@ def st_body():
                 st.write('You selected model: {}'.format(str(option)))
     #             return r
                 
+    # import requests
+    # from bs4 import BeautifulSoup
+
+    # # URL on the Github where the csv files are stored
+    # github_url = 'https://https://github.com/mullermu/SWG_Streamlit_2/tree/master/model'  # change USERNAME, REPOSITORY and FOLDER with actual name
+
+    # result = requests.get(github_url)
+
+    # soup = BeautifulSoup(database.text, 'html.parser')
+    # csvfiles = soup.find_all(title=result.compile("\.csv$"))
+
+    # filename = [ ]
+    # for i in csvfiles:
+    #         filename.append(i.extract().get_text())
+
 
 def st_result(clf):
     df = None
@@ -98,7 +113,7 @@ def st_result(clf):
         #     st.download_button("Download Classification File",get_csv(res),"../output/result_app.csv")
 def download_results():
         
-    files = [os.path.split(filename) for filename in glob.glob("/output/Predicted Results/*.csv")]
+    files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
 
     wb = openpyxl.Workbook()
     del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
@@ -111,9 +126,9 @@ def download_results():
             for row in csv.reader(f_input):
                 ws.append(row)
             
-    wb.save('/output/Predicted Results/Results.xlsx')
+    wb.save('output/Predicted Results/Results.xlsx')
 
-    with open('/output/Predicted Results/Results.xlsx', 'rb') as my_file:
+    with open('output/Predicted Results/Results.xlsx', 'rb') as my_file:
         st.download_button(label = 'Download Results', data = my_file, file_name = 'Results.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
 
 

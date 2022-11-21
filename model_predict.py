@@ -8,6 +8,7 @@ import swg
 class get_predict_result(object):
     
     def getResult(clfmodel):
+        st.write(clfmodel)
         def get_file(path_dataset):
             files = os.listdir(path_dataset)
             files.sort()
@@ -76,7 +77,7 @@ class get_predict_result(object):
             df2 = df.copy()
             df2.iloc[:,1:] = df2.iloc[:,1:] +1
             if export :
-                df2.to_csv("output/Predicted Results/Dashboard/Predict_Dashboard.csv",index=False)
+                df2.to_csv("output/Predicted Results/Predict_Dashboard.csv",index=False)
                 
             else :
                 return df,df2

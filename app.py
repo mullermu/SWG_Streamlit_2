@@ -105,6 +105,7 @@ def st_result(clf):
     df = None
     if clf is not None:
         model_predict.get_predict_result.getResult(clf)
+        download_results()
         # model = joblib.load(os.path.join("../model/",clf))
         # z = model.predict(X)
         # res = pd.concat([data,pd.DataFrame(z,columns=['Status'])],axis=1)
@@ -129,6 +130,7 @@ def download_results():
     wb.save('output/Predicted Results/Results.xlsx')
 
     with open('output/Predicted Results/Results.xlsx', 'rb') as my_file:
+        st.write("Data Predicted")
         st.download_button(label = 'Download Results', data = my_file, file_name = 'Results.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
 
 
@@ -154,7 +156,6 @@ def main():
             clf = st_body()
             if clf is not None and data is True:
                 st_result(clf)
-                download_results()
             else:
                 st.write('Please upload files and select predection model!')
                 

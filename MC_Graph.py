@@ -6,9 +6,9 @@ import plotly.express as px
 class mc_graph(object):
     def get_mc_graph():
         st.header("History Chart")
-        selected_mc = st.selectbox('Select Machine History Status', options = pd.read_csv("/MC lists/MC_lists.csv"))
+        selected_mc = st.selectbox('Select Machine History Status', options = pd.read_csv("MC lists/MC_lists.csv"))
             
-        path_sheet  = f"/output/Predicted Results/{selected_mc}.csv"
+        path_sheet  = f"output/Predicted Results/{selected_mc}.csv"
         if selected_mc != 'A16':
             mcData=pd.read_csv(path_sheet)
         else:
@@ -24,7 +24,7 @@ class mc_graph(object):
 
 
         def details_chart():
-            colum = pd.read_csv(f"/output/Predicted Results/{selected_mc}.csv").columns.drop(['Start', 'End'])
+            colum = pd.read_csv(f"output/Predicted Results/{selected_mc}.csv").columns.drop(['Start', 'End'])
             selected_details = st.selectbox('Select Parameter Values', options = colum)
             
             with st.container():

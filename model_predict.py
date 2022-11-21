@@ -39,7 +39,7 @@ class get_predict_result(object):
                     df = pd.read_csv(file, usecols=read_columns) #)
                     rs = swg.Swg(rawdf)
                     X = rs.scale()
-                    st.write('Used Standard Scaler to predict data')
+                    #st.write('Used Standard Scaler to predict data')
                     # st.table(X)
                     # st.table(df)
                     model = joblib.load(os.path.join("model/",clfmodel))

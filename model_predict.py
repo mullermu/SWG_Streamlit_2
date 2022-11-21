@@ -8,7 +8,7 @@ import swg
 class get_predict_result(object):
     
     def getResult(clfmodel):
-        st.write(clfmodel)
+        # st.write(clfmodel)
         def get_file(path_dataset):
             files = os.listdir(path_dataset)
             files.sort()
@@ -33,15 +33,15 @@ class get_predict_result(object):
             all_df = {}
             for i,file in enumerate(tqdm(read_files)):
                 filename = file.split("/")[-1].split(".")[0]
-                st.write(filename)
+                # st.write(filename)
                 if filename != 'A16':
                     rawdf=pd.read_csv(file, index_col=0)
                     df = pd.read_csv(file, usecols=read_columns) #)
                     rs = swg.Swg(rawdf)
                     X = rs.scale()
-                    st.write('Prediction data')
+                    st.write('Used Standard Scaler to predict data')
                     # st.table(X)
-                    st.table(X)
+                    # st.table(df)
                     model = joblib.load(os.path.join("model/",clfmodel))
                     z = model.predict(X)
                     # z = model.predict(df.drop(columns='Start'))

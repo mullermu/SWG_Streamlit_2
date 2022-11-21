@@ -21,8 +21,8 @@ class Swg(object):
             
             y = df.iloc[:,8].values
             
-            st.write('StandardScalered')
-            st.table(y)
+            #st.write('StandardScalered')
+            #st.table(y)
             return X,y
         else: return X 
         

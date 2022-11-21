@@ -47,7 +47,7 @@ class get_predict_result(object):
                     # z = model.predict(df.drop(columns='Start'))
                     
                     res = pd.concat([rawdf,pd.DataFrame(z+1,columns=['Status'])],axis=1)
-                    st.table(res.head())
+                    #st.table(res.head())
                     all_df[file.split("/")[-1].split(".")[0]] = clf.predict(df.iloc[:,1:].values)
                     if export :     
                         res.to_csv(f"output/Predicted Results/{filename}.csv",index=False)

@@ -2,7 +2,7 @@ import streamlit as st
 from time import sleep
 import pandas as pd
 import plotly.express as px
-
+import openpyxl
 class mc_graph(object):
     def get_mc_graph():
         st.header("History Chart")
@@ -24,7 +24,9 @@ class mc_graph(object):
 
 
         def details_chart():
-            colum = pd.read_csv(f"output/Predicted Results/{selected_mc}.csv").columns.drop(['Start', 'End'])
+            
+            colum = pd.read_excel(open('output/Predicted Results/Results.xlsx', 'rb'),sheet_name=selected_mc).columns.drop(['Start', 'End'])
+            # colum = pd.read_csv(f"output/Predicted Results/{selected_mc}.csv").columns.drop(['Start', 'End'])
             selected_details = st.selectbox('Select Parameter Values', options = colum)
             
             with st.container():

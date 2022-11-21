@@ -74,7 +74,7 @@ def st_body():
     
     # url = 'https://raw.githubusercontent.com/mullermu/SWG_Streamlit/tree/main/streamlitapp/model/'
     lstmodel = listmodel('model/')
-    #st.write(lstmodel)
+    # st.write(lstmodel)
     tmp = [i.split('.')[0] for i in lstmodel]
     col1, col2, col3 = st.columns([1,10,1])
     with col2 :
@@ -83,7 +83,7 @@ def st_body():
             submitted = st.form_submit_button('selected model and predict')
             if submitted:
                 st.write('You selected model: {}'.format(str(option)))
-                return lstmodel[tmp.index(option)]
+            return lstmodel[tmp.index(option)]
                 
     # import requests
     # from bs4 import BeautifulSoup
@@ -112,27 +112,69 @@ def st_result(clf):
         # col1, col2, col3 = st.columns([1,1,1])
         # with col2 :
         #     st.download_button("Download Classification File",get_csv(res),"../output/result_app.csv")
-def download_results():
-        
+def create_last_results():
     files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
-
     wb = openpyxl.Workbook()
     del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
-
     for f_path, f_name in files:
         (f_short_name, f_extension) = os.path.splitext(f_name)
         with open(os.path.join(f_path, f_name)) as f_input:
+            st.write(f_short_name)
             ws = wb.create_sheet(title=os.path.basename(f_short_name))
-            
             for row in csv.reader(f_input):
                 ws.append(row)
-            
-    wb.save('output/Predicted Results/Results.xlsx')
+    wb.save('output/Predicted Results/Last_Results.xlsx')
+def download_results():
+        
+    files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
+    st.write("Data Predicted")
 
-    with open('output/Predicted Results/Results.xlsx', 'rb') as my_file:
-        st.write("Data Predicted")
-        st.download_button(label = 'Download Results', data = my_file, file_name = 'Results.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
+    saveToDB = st.radio(
+    "Do you want to save data to database?",
+    ('Yes, This is new data.', 'No, Data was the same as the old one.','Replace all with the new one.'))
+    saveBT = st.button('Save to Database')
+    if saveToDB == 'Yes, This is new data.' and saveBT == True:
+        wb = openpyxl.load_workbook('output/Predicted Results/Results.xlsx')
+        for f_path, f_name in files:
+            (f_short_name, f_extension) = os.path.splitext(f_name)
+            with open(os.path.join(f_path, f_name)) as f_input:
+                ws = wb[f_short_name]
+                csv_reader = csv.reader(f_input)
+                first_line = next(csv_reader)
+                # st.write(first_line)
+                for row in csv.reader(f_input):
+                    if row != first_line:
+                        ws.append(row)
+        wb.save('output/Predicted Results/Results.xlsx')
+        create_last_results()
+        st.write("Added to Database")
 
+    elif saveToDB == 'No, Data was the same as the old one.' and saveBT == True:
+        st.write("Nothing saved")
+        create_last_results()
+    elif saveToDB == 'Replace all with the new one.' and saveBT == True:
+        wb = openpyxl.Workbook()
+        del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
+        for f_path, f_name in files:
+            (f_short_name, f_extension) = os.path.splitext(f_name)
+            with open(os.path.join(f_path, f_name)) as f_input:
+                st.write(f_short_name)
+                ws = wb.create_sheet(title=os.path.basename(f_short_name))
+                for row in csv.reader(f_input):
+                    ws.append(row)
+        wb.save('output/Predicted Results/Results.xlsx')
+        st.write("Replaced to Database")
+        create_last_results()
+    
+    downloadResults = st.radio(
+    "Which file do you would like to download?",
+    ('Download last results.', 'Download all database results.'))
+    if downloadResults == 'Download last results.':
+        my_file = open('output/Predicted Results/Last_Results.xlsx', 'rb')
+    elif downloadResults == 'Download all database results.':
+        my_file = open('output/Predicted Results/Results.xlsx', 'rb')
+        
+    st.download_button(label = 'Download Results', data = my_file, file_name = 'Results.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 def status_body():
     status = MC_status.MC_status.st_status()

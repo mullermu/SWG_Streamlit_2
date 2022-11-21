@@ -24,7 +24,7 @@ class get_predict_result(object):
             clf = joblib.load(os.path.join("model/",clfmodel))
             return clf
         def predict_and_save(export = False):
-            path_sheet  = "temp/"
+            path_sheet  = "Temp/"
             read_columns = ["Start","UPPER_BUS_PHASE_C","OUTGOING_PHASE_B","UPPER_BUS_PD"
             ,"LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"]
 

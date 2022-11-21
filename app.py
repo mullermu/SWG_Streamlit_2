@@ -73,7 +73,7 @@ def st_header(data):
 def st_body():
     
     # url = 'https://raw.githubusercontent.com/mullermu/SWG_Streamlit/tree/main/streamlitapp/model/'
-    lstmodel = listmodel('/model/')
+    lstmodel = listmodel('model/')
     st.write(lstmodel)
     tmp = [i.split('.')[0] for i in r]
     col1, col2, col3 = st.columns([1,10,1])

@@ -83,7 +83,7 @@ def st_body():
             submitted = st.form_submit_button('selected model and predict')
             if submitted:
                 st.write('You selected model: {}'.format(str(option)))
-    return lstmodel[tmp.index(option)]
+                return lstmodel[tmp.index(option)]
                 
     # import requests
     # from bs4 import BeautifulSoup

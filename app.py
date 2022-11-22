@@ -171,10 +171,12 @@ def download_results():
     ('Download last results.', 'Download all database results.'))
     if downloadResults == 'Download last results.':
         my_file = open('output/Predicted Results/Last_Results.xlsx', 'rb')
+        fileName = 'Last_Results.xlsx'
     elif downloadResults == 'Download all database results.':
         my_file = open('output/Predicted Results/Results.xlsx', 'rb')
+        fileName = 'Database_Results.xlsx'
         
-    st.download_button(label = 'Download Results', data = my_file, file_name = 'Results.xlsx', mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    st.download_button(label = 'Download Results', data = my_file, file_name = fileName, mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 def status_body():
     status = MC_status.MC_status.st_status()

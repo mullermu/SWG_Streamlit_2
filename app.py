@@ -119,7 +119,7 @@ def create_last_results():
     for f_path, f_name in files:
         (f_short_name, f_extension) = os.path.splitext(f_name)
         with open(os.path.join(f_path, f_name)) as f_input:
-            st.write(f_short_name)
+            # st.write(f_short_name)
             ws = wb.create_sheet(title=os.path.basename(f_short_name))
             for row in csv.reader(f_input):
                 ws.append(row)
@@ -158,7 +158,7 @@ def download_results():
         for f_path, f_name in files:
             (f_short_name, f_extension) = os.path.splitext(f_name)
             with open(os.path.join(f_path, f_name)) as f_input:
-                st.write(f_short_name)
+                # st.write(f_short_name)
                 ws = wb.create_sheet(title=os.path.basename(f_short_name))
                 for row in csv.reader(f_input):
                     ws.append(row)

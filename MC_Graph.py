@@ -10,7 +10,8 @@ class mc_graph(object):
             
         path_sheet  = f"output/Predicted Results/{selected_mc}.csv"
         if selected_mc != 'A16':
-            mcData=pd.read_csv(path_sheet)
+            mcData= pd.read_excel(open('output/Predicted Results/Results.xlsx', 'rb'),sheet_name=selected_mc)
+            # mcData=pd.read_csv(path_sheet)
         else:
             # df=pd.read_csv(path_sheet, index_col=0)
             mcData = [1,1]

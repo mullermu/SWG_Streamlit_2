@@ -18,7 +18,10 @@ import openpyxl
 import csv
 # from streamlitapp.Data_Input import data_input
 
-
+st.set_page_config(
+    page_title="Swtich Gear Prediction Main Page",
+    layout="wide"
+)
 def get_csv(df):
     
     csv = df.to_csv(index=False)
@@ -101,11 +104,14 @@ def st_body():
     #         filename.append(i.extract().get_text())
 
 
-def st_result(clf):
-    df = None
+def st_result(clf, df, sim = False):
     if clf is not None:
-        model_predict.get_predict_result.getResult(clf)
-        download_results()
+        if sim is not True:  
+            df = None
+            model_predict.get_predict_result.getResult(clf, df, False)
+            download_results()
+        else:
+            model_predict.get_predict_result.getResult(clf, df, True)
         # model = joblib.load(os.path.join("../model/",clf))
         # z = model.predict(X)
         # res = pd.concat([data,pd.DataFrame(z,columns=['Status'])],axis=1)
@@ -193,26 +199,119 @@ def summary_chart():
 def history_chart():
     MC_Graph.mc_graph.get_mc_graph()
 
+def simulation_app():
+    st.write("""
+    # Simulation Prediction App
+    """)
+    def user_input_features():
+        
+        col1, col2 = st.columns([1,1])
+        with col1 :
+            from datetime import date
+            Start_Time = date.today()
+            End_Time = date.today()
+            UPPER_BUS_PHASE_A = st.slider('UPPER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
+            UPPER_BUS_PHASE_B = st.slider('UPPER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
+            UPPER_BUS_PHASE_C = st.slider('UPPER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
+            LOWER_BUS_PHASE_A = st.slider('LOWER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
+            LOWER_BUS_PHASE_B = st.slider('LOWER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
+            LOWER_BUS_PHASE_C = st.slider('LOWER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
+        with col2:
+            OUTGOING_PHASE_A = st.slider('OUTGOING PHASE A Temperature', 0.00, 100.00, 50.00)
+            OUTGOING_PHASE_B = st.slider('OUTGOING PHASE B Temperature', 0.00, 100.00, 50.00)
+            OUTGOING_PHASE_C = st.slider('OUTGOING PHASE C Temperature', 0.00, 100.00, 50.00)
+            UPPER_BUS_PD = st.slider('UPPER BUS PD', 0.00, 10000.00, 100.00)
+            LOWER_BUS_PD = st.slider('LOWER BUS PD', 0.00, 10000.00, 100.00)
+            SPOUT_PD = st.slider('SPOUT PD', 0.00, 10000.00, 100.00)
+            OUTGOING_PD = st.slider('OUTGOING PD', 0.00, 10000.00, 100.00)
+        data = {
+                'Start' : Start_Time,
+                'End' : End_Time,
+                'UPPER_BUS_PHASE_A': UPPER_BUS_PHASE_A,
+                'UPPER_BUS_PHASE_B': UPPER_BUS_PHASE_B,
+                'UPPER_BUS_PHASE_C': UPPER_BUS_PHASE_C,
+                'LOWER_BUS_PHASE_A': LOWER_BUS_PHASE_A,
+                'LOWER_BUS_PHASE_B': LOWER_BUS_PHASE_B,
+                'LOWER_BUS_PHASE_C': LOWER_BUS_PHASE_C,
+                'OUTGOING_PHASE_A' : OUTGOING_PHASE_A,
+                'OUTGOING_PHASE_B' : OUTGOING_PHASE_B,
+                'OUTGOING_PHASE_C' : OUTGOING_PHASE_C,
+                'UPPER_BUS_PD': UPPER_BUS_PD,
+                'LOWER_BUS_PD' : LOWER_BUS_PD,
+                'SPOUT_PD' : SPOUT_PD,
+                'OUTGOING_PD': OUTGOING_PD
+                }
+        features = pd.DataFrame(data, index=[0])
+        return features
+    input_df = user_input_features()
+    SWG_raw = pd.read_csv('20211117_Temp&PD_afterClean_for_modeling.csv')
+    SWG_Data = SWG_raw.drop(columns=['Status'])
+    df = pd.concat([input_df, SWG_Data],axis=0, ignore_index=True)
+    # Selects only the first row (the user input data)
+    df = df.iloc[:]
+
+    # Displays the user input features
+    st.subheader('User Input features')
+
+    st.write('Awaiting CSV file to be uploaded. Currently using example input parameters (shown below).')
+    st.write(df.iloc[:1])
+    
+    if df is not None:
+        # Reads in saved classification model
+        lstmodel = listmodel('model/')
+        # st.write(lstmodel)
+        tmp = [i.split('.')[0] for i in lstmodel]
+        col1, col2, col3 = st.columns([1,5,1])
+        with col2 :
+            option = st.selectbox('Select Model:',tmp)
+            st.write('You selected model: {}'.format(str(option)))
+            lstmodel[tmp.index(option)]
+        st_result(lstmodel[tmp.index(option)], df, True)
+    
+    # # Apply model to make predictions
+    # prediction = load_clf.predict(df)
+
+    # #----------------------------------------------------------
+    # input_df2 = input_df2[:2] 
+    # X_submission = input_df2.iloc[:,1:13].to_numpy()
+
+    # prediction2 = load_clf.predict(X_submission)
+    # prediction2 = pd.Series(prediction2, name='Severity')
+    # df_submission_rfr = pd.concat([input_df2.iloc[:,:1], input_df2.iloc[:,1:13], pd.Series(prediction2)], axis=1)
+    # #----------------------------------------------------------
+
+    # st.subheader('Prediction')
+    # st.write([prediction])
+
+    # #-----------------------------------------------------------
+    # st.write([df_submission_rfr])
+
+    # # Saving our submission file
+    # df_submission_rfr.to_excel('20221017_20220805-20220515_NewDecanter_submission_rfr.xlsx', index=False) 
+
 def main():
     with st.sidebar:  
             data = None
             data = st_header(data)
             clf = st_body()
             if clf is not None and data is True:
-                st_result(clf)
+                df = None
+                st_result(clf, df, False)
             else:
                 st.write('Please upload files and select predection model!')
                 
             
             
 
-    tab1, tab2 = st.tabs(["Summary", "Details"])
+    tab1, tab2, tab3 = st.tabs(["Summary", "Details", "Simulation"])
     with tab1:
         st.header("Summary")
         status_body() 
         summary_chart()
     with tab2:
         history_chart()
+    with tab3:
+        simulation_app()
     
 
 main()

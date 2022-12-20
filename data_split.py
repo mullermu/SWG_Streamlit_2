@@ -41,7 +41,8 @@ class Data_Split(object):
                         df1.to_csv(f'Temp/{sheet_name}.csv', header=colum, encoding='utf-8')
 
                     else:
-                        
+                        if sheet_name == 'A1' and len(df1.columns) == 16 :
+                            df1=df1.iloc[: , :-1]
                         df1=df1.iloc[17:]
                         # df1=df1.drop(df1.loc[0:16].index, inplace=True)
                         # st.write(sheet_name)

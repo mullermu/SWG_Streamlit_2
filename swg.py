@@ -13,7 +13,9 @@ class Swg(object):
     def scale(self):
         df = self.data
         scl = StandardScaler()
-        X = scl.fit_transform(df.iloc[:,2:8].values)
+        read_columns = ["UPPER_BUS_PHASE_C","OUTGOING_PHASE_B","UPPER_BUS_PD"
+        ,"LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"]
+        X = scl.fit_transform(df[read_columns].values)
         # X = df.iloc[:,2:8].values
         #st.write('StandardScalered')
         #st.table(X)

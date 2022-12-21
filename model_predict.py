@@ -108,7 +108,7 @@ class get_predict_result(object):
             z = model.predict(predict_df)
             # z = model.predict(df.drop(columns='Start'))
             res = pd.concat([predict_df,pd.DataFrame(z+1,columns=['Status'])],axis=1)
-            st.write(res.head())
+            st.write(res['Status'])
         if sim is not True:
             predict_and_save(export = True)
         else:

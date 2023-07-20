@@ -241,6 +241,7 @@ def simulation_app():
                 'SPOUT_PD' : SPOUT_PD,
                 'OUTGOING_PD': OUTGOING_PD
                 }
+
         features = pd.DataFrame(data, index=[0])
         return features
     input_df = user_input_features()

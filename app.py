@@ -245,11 +245,7 @@ def simulation_app():
         features = pd.DataFrame(data, index=[0])
         return features
     input_df = user_input_features()
-    SWG_raw = pd.read_csv('20211117_Temp&PD_afterClean_for_modeling.csv')
-    SWG_Data = SWG_raw.drop(columns=['Status'])
-    df = pd.concat([input_df, SWG_Data],axis=0, ignore_index=True)
-    # Selects only the first row (the user input data)
-    df = df.iloc[:]
+    df = input_df.iloc[:]
 
     # Displays the user input features
     st.subheader('User Input features')
@@ -269,26 +265,6 @@ def simulation_app():
             lstmodel[tmp.index(option)]
         st_result(lstmodel[tmp.index(option)], df, True)
     
-    # # Apply model to make predictions
-    # prediction = load_clf.predict(df)
-
-    # #----------------------------------------------------------
-    # input_df2 = input_df2[:2] 
-    # X_submission = input_df2.iloc[:,1:13].to_numpy()
-
-    # prediction2 = load_clf.predict(X_submission)
-    # prediction2 = pd.Series(prediction2, name='Severity')
-    # df_submission_rfr = pd.concat([input_df2.iloc[:,:1], input_df2.iloc[:,1:13], pd.Series(prediction2)], axis=1)
-    # #----------------------------------------------------------
-
-    # st.subheader('Prediction')
-    # st.write([prediction])
-
-    # #-----------------------------------------------------------
-    # st.write([df_submission_rfr])
-
-    # # Saving our submission file
-    # df_submission_rfr.to_excel('20221017_20220805-20220515_NewDecanter_submission_rfr.xlsx', index=False) 
 
 def main():
     with st.sidebar:  

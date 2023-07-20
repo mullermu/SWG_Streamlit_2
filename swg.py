@@ -14,9 +14,8 @@ class Swg(object):
         df = self.data
         #Find Lastrow
         lastrow = len(df.index)
-        #Import dataset file
-        SWG_raw = pd.read_csv("Dataset/SWG_Dataset.csv")
-        SWG_Data = SWG_raw.drop(columns=['Start time','End time','Severity'])
+        SWG_Data = pd.read_csv("Dataset/SWG_Dataset.csv")
+        SWG_Data = SWG_Data.drop(columns=['Start time','End time','Severity'])
          
         SWG_Data.set_axis(["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
                         "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",

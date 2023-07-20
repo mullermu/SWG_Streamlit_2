@@ -10,12 +10,10 @@ class Data_Split(object):
     def split(data):
         uploaded_file = data
         if uploaded_file is not None:        
-            colum = ["Start","End","UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B"
-                ,"UPPER_BUS_PHASE_C","LOWER_BUS_PHASE_A"
-                ,"LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C"
-                ,"OUTGOING_PHASE_A","OUTGOING_PHASE_B"
-                ,"OUTGOING_PHASE_C","UPPER_BUS_PD"
-                ,"LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"]
+            colum = ["Start","End","UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
+                        "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
+                        "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
+                        "UPPER_BUS_PD", "LOWER_BUS_PD", "SPOUT_PD", "OUTGOING_PD"]
         
             columnA16 = ["Start","End","UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B"
                 ,"UPPER_BUS_PHASE_C","UPPER_BUS_PD"

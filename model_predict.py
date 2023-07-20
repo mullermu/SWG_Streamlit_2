@@ -37,29 +37,34 @@ class get_predict_result(object):
                 if filename != 'A16':
                     rawdf=pd.read_csv(file, index_col=0)
 
-                    #Find Lastrow
-                    lastrow = len(rawdf.index)
+                    # #Find Lastrow
+                    # lastrow = len(rawdf.index)
                     
-                    #Import dataset file
-                    SWG_raw = pd.read_csv('20211117_Temp&PD_afterClean_for_modeling.csv')
-                    SWG_Data = SWG_raw.drop(columns=['Status'])
+                    # #Import dataset file
+                    # SWG_raw = pd.read_csv('Dataset/20230712_2016-2023_Dataset.csv')
+                    # SWG_Data = SWG_raw.drop(columns=['Status'])
 
                     
-                    #concat data and dataset for Scaler
-                    df = pd.concat([rawdf, SWG_Data],axis=0, ignore_index=True)
+                    # #concat data and dataset for Scaler
+                    # df = pd.concat([rawdf, SWG_Data],axis=0, ignore_index=True)
                     
 
                     # df = pd.read_csv(file, usecols=read_columns) #)
 
-                    rs = swg.Swg(df)
+                    rs = swg.Swg(rawdf)
                     X = rs.scale()
 
                     #Predict only data by dropping dataset using last row
-                    predict_df = pd.DataFrame(X).iloc[:lastrow]
+                    # predict_df = pd.DataFrame(X).iloc[:lastrow]
+                    # st.table(X.head())
+
 
                     model = joblib.load(os.path.join("model/",clfmodel))
-                    z = model.predict(predict_df)
+                    z = model.predict(X)
+
+                    
                     res = pd.concat([rawdf,pd.DataFrame(z+1,columns=['Status'])],axis=1)
+                    res.insert(0, "Panel", filename, allow_duplicates=True)
                     
                     # st.table(res.head())
                     # all_df[file.split("/")[-1].split(".")[0]] = clf.predict(df.iloc[:,1:].values)
@@ -108,6 +113,8 @@ class get_predict_result(object):
             z = model.predict(predict_df)
             # z = model.predict(df.drop(columns='Start'))
             res = pd.concat([predict_df,pd.DataFrame(z+1,columns=['Status'])],axis=1)
+            res.insert(0, "Panel", "Simulation", allow_duplicates=True)
+            
             st.write(res['Status'])
         if sim is not True:
             predict_and_save(export = True)

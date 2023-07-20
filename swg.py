@@ -21,7 +21,7 @@ class Swg(object):
 
         #concat data and dataset for Scaler
         df = pd.concat([df, SWG_Data],axis=0, ignore_index=True)
-        st.table(df.head())
+        # st.table(df.head())
         scl = StandardScaler()
         
         read_columns = ["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",

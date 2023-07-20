@@ -57,7 +57,7 @@ class get_predict_result(object):
             
             model = joblib.load(os.path.join("model/",clfmodel))
             z = model.predict(predict_df)
-            res = pd.concat([predict_df,pd.DataFrame(z,columns=['Status'])],axis=1)
+            res = pd.concat([predict_df,pd.DataFrame(z+1,columns=['Status'])],axis=1)
             res.insert(0, "Panel", "Simulation", allow_duplicates=True)
             
             st.write(res['Status'])

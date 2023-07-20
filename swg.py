@@ -21,7 +21,6 @@ class Swg(object):
 
         #concat data and dataset for Scaler
         df = pd.concat([df, SWG_Data],axis=0, ignore_index=True)
-        st.table(df.head())
 
         scl = StandardScaler()
         

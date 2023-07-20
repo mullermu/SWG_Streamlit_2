@@ -245,15 +245,14 @@ def simulation_app():
         features = pd.DataFrame(data, index=[0])
         return features
     input_df = user_input_features()
-    df = input_df.iloc[:]
-
+    # df = input_df.iloc[:]
     # Displays the user input features
     st.subheader('User Input features')
 
     st.write('Awaiting CSV file to be uploaded. Currently using example input parameters (shown below).')
-    st.write(df.iloc[:1])
+    st.write(input_df.iloc[:1])
     
-    if df is not None:
+    if input_df is not None:
         # Reads in saved classification model
         lstmodel = listmodel('model/')
         # st.write(lstmodel)
@@ -263,7 +262,7 @@ def simulation_app():
             option = st.selectbox('Select Model:',tmp)
             st.write('You selected model: {}'.format(str(option)))
             lstmodel[tmp.index(option)]
-        st_result(lstmodel[tmp.index(option)], df, True)
+        st_result(lstmodel[tmp.index(option)], input_df, True)
     
 
 def main():

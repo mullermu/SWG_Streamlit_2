@@ -12,9 +12,26 @@ class Swg(object):
 
     def scale(self):
         df = self.data
+        
+        #Find Lastrow
+        lastrow = len(df.index)
+                    
+        #Import dataset file
+        SWG_raw = pd.read_csv("Dataset/SWG_Dataset.csv")
+        # st.table(SWG_raw.head())
+        SWG_Data = SWG_raw.drop(columns=['Start time','End time','Severity'])
+                    
+        #concat data and dataset for Scaler
+        df = pd.concat([df, SWG_Data],axis=0, ignore_index=True)
+
+
         scl = StandardScaler()
-        read_columns = ["UPPER_BUS_PHASE_C","OUTGOING_PHASE_B","UPPER_BUS_PD"
-        ,"LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"]
+        # read_columns = ["UPPER_BUS_PHASE_C","OUTGOING_PHASE_B","UPPER_BUS_PD"
+        # ,"LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"]
+        read_columns = ["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
+                        "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
+                        "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
+                        "UPPER_BUS_PD", "LOWER_BUS_PD", "SPOUT_PD", "OUTGOING_PD"]
         X = scl.fit_transform(df[read_columns].values)
         # X = df.iloc[:,2:8].values
         #st.write('StandardScalered')
@@ -26,9 +43,10 @@ class Swg(object):
             #st.write('StandardScalered')
             #st.table(y)
             return X,y
-        else: return X 
+        else: 
+            
+            X = pd.DataFrame(X).iloc[:lastrow]
+            return X 
         
     def acc(self,pred,true): return accuracy_score(true,pred)
     
-
-

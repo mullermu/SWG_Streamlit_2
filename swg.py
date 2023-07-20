@@ -16,21 +16,19 @@ class Swg(object):
         lastrow = len(df.index)
         SWG_Data = pd.read_csv("Dataset/SWG_Dataset.csv")
         SWG_Data = SWG_Data.drop(columns=['Start time','End time','Severity'])
+        read_columns = ["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
+                "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
+                "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
+                "UPPER_BUS_PD", "LOWER_BUS_PD", "SPOUT_PD", "OUTGOING_PD"]
          
-        # SWG_Data.set_axis(["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
-        #                 "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
-        #                 "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
-        #                 "UPPER_BUS_PD", "LOWER_BUS_PD", "SPOUT_PD", "OUTGOING_PD"], axis='columns', inplace=True) 
+        SWG_Data.set_axis([read_columns], axis='columns', inplace=True) 
 
         #concat data and dataset for Scaler
         df = pd.concat([df, SWG_Data],axis=0, ignore_index=True)
         
 
         scl = StandardScaler()
-        read_columns = ["UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
-                        "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
-                        "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
-                        "UPPER_BUS_PD", "LOWER_BUS_PD", "SPOUT_PD", "OUTGOING_PD"]
+
         X = scl.fit_transform(df[read_columns].values)
         
 

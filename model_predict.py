@@ -18,6 +18,7 @@ class get_predict_result(object):
                     file_list.append(path)
 
             return file_list
+        @st.cache
         def load_model():
             clf = joblib.load(os.path.join("model/",clfmodel))
             return clf

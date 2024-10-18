@@ -63,24 +63,24 @@ class get_predict_result(object):
         def predict_sim():
             
             rawdf=data
-            rawdf=rawdf.rename(columns={'UPPER_BUS_PHASE_A':'A6_Upper_Bus_PhaseA','UPPER_BUS_PHASE_B':'A6_Upper_Bus_PhaseB', 
+            # rawdf=rawdf.rename(columns={'UPPER_BUS_PHASE_A':'A6_Upper_Bus_PhaseA','UPPER_BUS_PHASE_B':'A6_Upper_Bus_PhaseB', 
                     'UPPER_BUS_PHASE_C':'A6_Upper_Bus_PhaseC','LOWER_BUS_PHASE_A':'A6_Lower_Bus_PhaseA',
                     'LOWER_BUS_PHASE_B':'A6_Lower_Bus_PhaseB','LOWER_BUS_PHASE_C':'A6_Lower_Bus_PhaseC',
                     'OUTGOING_PHASE_A':'A6_Outgoing_PhaseA','OUTGOING_PHASE_B':'A6_Outgoing_PhaseB',
                     'OUTGOING_PHASE_C':'A6_Outgoing_PhaseC','UPPER_BUS_PD':'PD_Max_Upper','LOWER_BUS_PD':'PD_Max_Lower',
                     'SPOUT_PD':'PD_Max_Spout','OUTGOING_PD':'PD_Max_Outgoing'})
             
-            read_columns = ["A6_Upper_Bus_PhaseA","A6_Upper_Bus_PhaseB","A6_Upper_Bus_PhaseC",
+            # read_columns = ["A6_Upper_Bus_PhaseA","A6_Upper_Bus_PhaseB","A6_Upper_Bus_PhaseC",
                 "A6_Lower_Bus_PhaseA","A6_Lower_Bus_PhaseB","A6_Lower_Bus_PhaseC",
                 "A6_Outgoing_PhaseA","A6_Outgoing_PhaseB","A6_Outgoing_PhaseC",
                 "PD_Max_Upper", "PD_Max_Lower", "PD_Max_Spout", "PD_Max_Outgoing"]
-            # rs = swg.Swg(rawdf)
-            # predict_df = rs.scale()
+            rs = swg.Swg(rawdf)
+            predict_df = rs.scale()
             
-            # predict_df = pd.DataFrame(X).iloc[:1]
+            predict_df = pd.DataFrame(X).iloc[:1]
             
             model = joblib.load(os.path.join("model/",clfmodel))
-            z = model.predict(rawdf[read_columns])
+            z = model.predict(X)
             res = pd.concat([rawdf,pd.DataFrame(z+1,columns=['Status'])],axis=1)
             res.insert(0, "Panel", "Simulation", allow_duplicates=True)
             

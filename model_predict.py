@@ -50,7 +50,7 @@ class get_predict_result(object):
                     model = joblib.load(os.path.join("model/",clfmodel))
                     # z = model.predict(rawdf[read_columns])
                     z = model.predict(X)
-                    res = pd.concat([rawdf,pd.DataFrame(z+1,columns=['Status'])],axis=1)
+                    res = pd.concat([rawdf,pd.DataFrame(z,columns=['Status'])],axis=1)
                     res.insert(0, "Panel", filename, allow_duplicates=True)
                     
                     if export :     

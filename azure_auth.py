@@ -55,27 +55,33 @@ class AzureAuthManager:
         """Exchange the auth response params for a token set."""
         return self.client.acquire_token_by_auth_code_flow(flow, auth_response)
 
-
-ENV_CLIENT_ID = st.secrets["AZURE_CLIENT_ID"]
-ENV_TENANT_ID = st.secrets["AZURE_TENANT_ID"]
-ENV_CLIENT_SECRET = st.secrets["AZURE_CLIENT_SECRET"]
-ENV_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/"
-DEFAULT_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/"
+ENV_CLIENT_ID = "AZURE_CLIENT_ID"
+ENV_TENANT_ID = "AZURE_TENANT_ID"
+ENV_CLIENT_SECRET = "AZURE_CLIENT_SECRET"
+ENV_REDIRECT_URI = "AZURE_REDIRECT_URI"
+DEFAULT_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/oauth2callback"
 
 
 def _get_setting(env_var: str, secret_key: str) -> str:
     """Read a configuration value from env vars or Streamlit secrets."""
 
-    env_value = os.getenv(env_var, "").strip()
+    env_value = (os.getenv(env_var) or "").strip()
     if env_value:
         return env_value
 
-    # Prefer grouped secrets like [azure]client_id, but fall back to flat keys.
-    grouped = st.secrets.get("azure", {})
-    if secret_key in grouped:
-        return str(grouped.get(secret_key, "")).strip()
+    try:
+        secrets = st.secrets
+    except Exception:
+        secrets = {}
 
-    return str(st.secrets.get(secret_key, "")).strip()
+    # Prefer grouped secrets like [azure]client_id, but fall back to flat keys.
+    grouped = secrets.get("azure", {})
+    if secret_key in grouped:
+        value = str(grouped.get(secret_key, "")).strip()
+        if value:
+            return value
+
+    return str(secrets.get(secret_key, "")).strip()
 
 
 def load_auth_config() -> AuthConfig:
@@ -91,7 +97,9 @@ def load_auth_config() -> AuthConfig:
     client_id = _get_setting(ENV_CLIENT_ID, "client_id")
     tenant_id = _get_setting(ENV_TENANT_ID, "tenant_id")
     client_secret = _get_setting(ENV_CLIENT_SECRET, "client_secret")
-    redirect_uri = _get_setting(ENV_REDIRECT_URI, "redirect_uri") or DEFAULT_REDIRECT_URI
+    redirect_uri = (
+        _get_setting(ENV_REDIRECT_URI, "redirect_uri") or DEFAULT_REDIRECT_URI
+    )
 
     if not all([client_id, tenant_id, client_secret]):
         missing = [

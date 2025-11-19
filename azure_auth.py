@@ -56,10 +56,10 @@ class AzureAuthManager:
         return self.client.acquire_token_by_auth_code_flow(flow, auth_response)
 
 
-ENV_CLIENT_ID = "AZURE_CLIENT_ID"
-ENV_TENANT_ID = "AZURE_TENANT_ID"
-ENV_CLIENT_SECRET = "AZURE_CLIENT_SECRET"
-ENV_REDIRECT_URI = "AZURE_REDIRECT_URI"
+ENV_CLIENT_ID = st.secrets["AZURE_CLIENT_ID"]
+ENV_TENANT_ID = st.secrets["AZURE_TENANT_ID"]
+ENV_CLIENT_SECRET = st.secrets["AZURE_CLIENT_SECRET"]
+ENV_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/"
 DEFAULT_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/"
 
 

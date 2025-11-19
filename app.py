@@ -105,7 +105,7 @@ def st_header(data):
     st.title("Switch Gear Status Classification App")
     
     with st.container():
-@@ -244,50 +302,51 @@ def simulation_app():
+# @@ -244,50 +302,51 @@ def simulation_app():
 
         features = pd.DataFrame(data, index=[0])
         return features

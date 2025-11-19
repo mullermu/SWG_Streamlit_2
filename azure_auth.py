@@ -44,22 +44,27 @@ class AzureAuthManager:
             authority=config.authority,
         )
 
-    def build_auth_code_flow(self) -> Dict:
-        """Start the auth code flow and return the flow dict."""
-        return self.client.initiate_auth_code_flow(
+    def build_authorization_url(self, state: str | None = None) -> str:
+        """Return the Microsoft login URL for interactive auth."""
+        return self.client.get_authorization_request_url(
+            scopes=self.config.scopes,
+            redirect_uri=self.config.redirect_uri,
+            state=state,
+        )
+
+    def exchange_code_for_token(self, auth_code: str) -> Dict:
+        """Exchange an auth code for a token set."""
+        return self.client.acquire_token_by_authorization_code(
+            auth_code,
             scopes=self.config.scopes,
             redirect_uri=self.config.redirect_uri,
         )
-
-    def exchange_code_for_token(self, auth_response: Dict, flow: Dict) -> Dict:
-        """Exchange the auth response params for a token set."""
-        return self.client.acquire_token_by_auth_code_flow(flow, auth_response)
 
 ENV_CLIENT_ID = "AZURE_CLIENT_ID"
 ENV_TENANT_ID = "AZURE_TENANT_ID"
 ENV_CLIENT_SECRET = "AZURE_CLIENT_SECRET"
 ENV_REDIRECT_URI = "AZURE_REDIRECT_URI"
-DEFAULT_REDIRECT_URI = "AZURE_REDIRECT_URI"
+
 
 
 def _get_setting(env_var: str, secret_key: str) -> str:
@@ -71,17 +76,23 @@ def _get_setting(env_var: str, secret_key: str) -> str:
 
     try:
         secrets = st.secrets
-    except Exception:
+    except (RuntimeError, AttributeError):
         secrets = {}
 
-    # Prefer grouped secrets like [azure]client_id, but fall back to flat keys.
+    candidates = [secret_key, env_var]
+
     grouped = secrets.get("azure", {})
-    if secret_key in grouped:
-        value = str(grouped.get(secret_key, "")).strip()
+    for key in candidates:
+        value = str(grouped.get(key, "")).strip()
         if value:
             return value
 
-    return str(secrets.get(secret_key, "")).strip()
+    for key in candidates:
+        value = str(secrets.get(key, "")).strip()
+        if value:
+            return value
+
+    return ""
 
 
 def load_auth_config() -> AuthConfig:
@@ -97,17 +108,16 @@ def load_auth_config() -> AuthConfig:
     client_id = _get_setting(ENV_CLIENT_ID, "client_id")
     tenant_id = _get_setting(ENV_TENANT_ID, "tenant_id")
     client_secret = _get_setting(ENV_CLIENT_SECRET, "client_secret")
-    redirect_uri = (
-        _get_setting(ENV_REDIRECT_URI, "redirect_uri") or DEFAULT_REDIRECT_URI
-    )
+    redirect_uri = _get_setting(ENV_REDIRECT_URI, "redirect_uri")
 
-    if not all([client_id, tenant_id, client_secret]):
+    if not all([client_id, tenant_id, client_secret, redirect_uri]):
         missing = [
             name
             for name, value in (
                 (ENV_CLIENT_ID, client_id),
                 (ENV_TENANT_ID, tenant_id),
                 (ENV_CLIENT_SECRET, client_secret),
+                (ENV_REDIRECT_URI, redirect_uri),
             )
             if not value
         ]

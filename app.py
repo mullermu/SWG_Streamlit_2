@@ -1,301 +1,3 @@
-# # pip install streamlit
-# # pip install numpy
-# # pip install joblib
-# # pip install openpyxl
-
-
-
-# # from tkinter import X
-# import streamlit as st
-# import pandas as pd
-# import os
-# import pandas as pd
-# import MC_status
-# import MC_Graph
-# import model_predict
-# import glob
-# import openpyxl 
-# import csv
-# # from streamlitapp.Data_Input import data_input
-
-# st.set_page_config(
-#     page_title="Swtich Gear Prediction Main Page",
-#     layout="wide"
-# )
-# def get_csv(df):
-    
-#     csv = df.to_csv(index=False)
-    
-#     return csv
-# def get_data1(dtfile):
-#     dtfile.to_csv (r'Temp/temp.csv', index = False, header=True)
-
-# def form_callback():
-#     st.write(st.session_state.my_option)
-#     st.write(st.session_state.my_checkbox)
-
-# def listmodel(path):
-#     # return os.urllib(path)
-    
-#     return os.listdir(path)
-
-# def listmachine(path):
-#     return os.listdir(path)
-
-
-# def st_header(data):
-#     st.title("Switch Gear Status Classification App")
-    
-#     with st.container():
-        
-#         col1, col2, col3 = st.columns([1,10,1])
-        
-#         with col2 :
-#             # st.markdown("{}".format(str(word)))
-#             uploaded_file = st.file_uploader("Choose a A1-A16 file")
-            
-#             # st.markdown("{}".format(str(word)))
-#             uploaded_file2 = st.file_uploader("Choose a A18-A31 file")
-            
-#             if uploaded_file is not None and uploaded_file2 is not None:
-#                 import data_split
-#                 data_split.Data_Split.split(uploaded_file)
-#                 data_split.Data_Split.split(uploaded_file2)
-#                 data = True
-                
-#                 # st.write(data.head())
-                
-#                 # get_data1(data)
-#                 # st.table(data)
-#                 # import Data_split
-#                 # Data_split.data_input(data)
-#     return data
-
-
-
-# def st_body():
-    
-#     # url = 'https://raw.githubusercontent.com/mullermu/SWG_Streamlit/tree/main/streamlitapp/model/'
-#     lstmodel = listmodel('model/')
-#     # st.write(lstmodel)
-#     tmp = [i.split('.')[0] for i in lstmodel]
-#     col1, col2, col3 = st.columns([1,10,1])
-#     with col2 :
-#         with st.form(key='my_form'):
-#             option = st.selectbox('Select Model:',tmp,key="my_option")
-#             submitted = st.form_submit_button('selected model and predict')
-#             if submitted:
-#                 st.write('You selected model: {}'.format(str(option)))
-#             return lstmodel[tmp.index(option)]
-                
-#     # import requests
-#     # from bs4 import BeautifulSoup
-
-#     # # URL on the Github where the csv files are stored
-#     # github_url = 'https://https://github.com/mullermu/SWG_Streamlit_2/tree/master/model'  # change USERNAME, REPOSITORY and FOLDER with actual name
-
-#     # result = requests.get(github_url)
-
-#     # soup = BeautifulSoup(database.text, 'html.parser')
-#     # csvfiles = soup.find_all(title=result.compile("\.csv$"))
-
-#     # filename = [ ]
-#     # for i in csvfiles:
-#     #         filename.append(i.extract().get_text())
-
-
-# def st_result(clf, df, sim = False):
-#     if clf is not None:
-#         if sim is not True:  
-#             df = None
-#             model_predict.get_predict_result.getResult(clf, df, False)
-#             download_results()
-#         else:
-#             model_predict.get_predict_result.getResult(clf, df, True)
-#         # model = joblib.load(os.path.join("../model/",clf))
-#         # z = model.predict(X)
-#         # res = pd.concat([data,pd.DataFrame(z,columns=['Status'])],axis=1)
-#         # col1, col2, col3 = st.columns([1,1,1])
-#         # with col2 :
-#         #     st.download_button("Download Classification File",get_csv(res),"../output/result_app.csv")
-# def create_last_results():
-#     files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
-#     wb = openpyxl.Workbook()
-#     del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
-#     for f_path, f_name in files:
-#         (f_short_name, f_extension) = os.path.splitext(f_name)
-#         with open(os.path.join(f_path, f_name)) as f_input:
-#             # st.write(f_short_name)
-#             ws = wb.create_sheet(title=os.path.basename(f_short_name))
-#             for row in csv.reader(f_input):
-#                 ws.append(row)
-#     wb.save('output/Predicted Results/Last_Results.xlsx')
-# def download_results():
-        
-#     files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
-#     st.write("Data Predicted")
-
-#     saveToDB = st.radio(
-#     "Do you want to save data to database?",
-#     ('Yes, This is new data.', 'No, Data was the same as the old one.','Replace all with the new one.'))
-#     saveBT = st.button('Save to Database')
-#     if saveToDB == 'Yes, This is new data.' and saveBT == True:
-#         wb = openpyxl.load_workbook('output/Predicted Results/Results.xlsx')
-#         for f_path, f_name in files:
-#             (f_short_name, f_extension) = os.path.splitext(f_name)
-#             with open(os.path.join(f_path, f_name)) as f_input:
-#                 ws = wb[f_short_name]
-#                 csv_reader = csv.reader(f_input)
-#                 first_line = next(csv_reader)
-#                 # st.write(first_line)
-#                 for row in csv.reader(f_input):
-#                     if row != first_line:
-#                         ws.append(row)
-#         wb.save('output/Predicted Results/Results.xlsx')
-#         create_last_results()
-#         st.write("Added to Database")
-
-#     elif saveToDB == 'No, Data was the same as the old one.' and saveBT == True:
-#         st.write("Nothing saved")
-#         create_last_results()
-#     elif saveToDB == 'Replace all with the new one.' and saveBT == True:
-#         wb = openpyxl.Workbook()
-#         del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
-#         for f_path, f_name in files:
-#             (f_short_name, f_extension) = os.path.splitext(f_name)
-#             with open(os.path.join(f_path, f_name)) as f_input:
-#                 # st.write(f_short_name)
-#                 ws = wb.create_sheet(title=os.path.basename(f_short_name))
-#                 for row in csv.reader(f_input):
-#                     ws.append(row)
-#         wb.save('output/Predicted Results/Results.xlsx')
-#         st.write("Replaced to Database")
-#         create_last_results()
-    
-#     downloadResults = st.radio(
-#     "Which file do you would like to download?",
-#     ('Download last results.', 'Download all database results.'))
-#     if downloadResults == 'Download last results.':
-#         my_file = open('output/Predicted Results/Last_Results.xlsx', 'rb')
-#         fileName = 'Last_Results.xlsx'
-#     elif downloadResults == 'Download all database results.':
-#         my_file = open('output/Predicted Results/Results.xlsx', 'rb')
-#         fileName = 'Database_Results.xlsx'
-        
-#     st.download_button(label = 'Download Results', data = my_file, file_name = fileName, mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-# def status_body():
-#     status = MC_status.MC_status.st_status()
-#     return status
-
-# def summary_chart():
-#     st.header("Summary Chart")
-#     chart_data = pd.DataFrame(
-#     MC_status.MC_status.sum_status(),
-#     columns=['Summary'],
-#     index=['Stage A', 'Stage B', 'Stage C','Stage D'])
-#     st.bar_chart(chart_data)
-
-# def history_chart():
-#     MC_Graph.mc_graph.get_mc_graph()
-
-# def simulation_app():
-#     st.write("""
-#     # Simulation Prediction App
-#     """)
-#     def user_input_features():
-        
-#         col1, col2 = st.columns([1,1])
-#         with col1 :
-#             from datetime import date
-#             Start_Time = date.today()
-#             End_Time = date.today()
-#             UPPER_BUS_PHASE_A = st.slider('UPPER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
-#             UPPER_BUS_PHASE_B = st.slider('UPPER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
-#             UPPER_BUS_PHASE_C = st.slider('UPPER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
-#             LOWER_BUS_PHASE_A = st.slider('LOWER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
-#             LOWER_BUS_PHASE_B = st.slider('LOWER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
-#             LOWER_BUS_PHASE_C = st.slider('LOWER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
-#         with col2:
-#             OUTGOING_PHASE_A = st.slider('OUTGOING PHASE A Temperature', 0.00, 100.00, 50.00)
-#             OUTGOING_PHASE_B = st.slider('OUTGOING PHASE B Temperature', 0.00, 100.00, 50.00)
-#             OUTGOING_PHASE_C = st.slider('OUTGOING PHASE C Temperature', 0.00, 100.00, 50.00)
-#             UPPER_BUS_PD = st.slider('UPPER BUS PD', 0.00, 10000.00, 100.00)
-#             LOWER_BUS_PD = st.slider('LOWER BUS PD', 0.00, 10000.00, 100.00)
-#             SPOUT_PD = st.slider('SPOUT PD', 0.00, 10000.00, 100.00)
-#             OUTGOING_PD = st.slider('OUTGOING PD', 0.00, 10000.00, 100.00)
-#         data = {
-#                 'Start' : Start_Time,
-#                 'End' : End_Time,
-#                 'UPPER_BUS_PHASE_A': UPPER_BUS_PHASE_A,
-#                 'UPPER_BUS_PHASE_B': UPPER_BUS_PHASE_B,
-#                 'UPPER_BUS_PHASE_C': UPPER_BUS_PHASE_C,
-#                 'LOWER_BUS_PHASE_A': LOWER_BUS_PHASE_A,
-#                 'LOWER_BUS_PHASE_B': LOWER_BUS_PHASE_B,
-#                 'LOWER_BUS_PHASE_C': LOWER_BUS_PHASE_C,
-#                 'OUTGOING_PHASE_A' : OUTGOING_PHASE_A,
-#                 'OUTGOING_PHASE_B' : OUTGOING_PHASE_B,
-#                 'OUTGOING_PHASE_C' : OUTGOING_PHASE_C,
-#                 'UPPER_BUS_PD': UPPER_BUS_PD,
-#                 'LOWER_BUS_PD' : LOWER_BUS_PD,
-#                 'SPOUT_PD' : SPOUT_PD,
-#                 'OUTGOING_PD': OUTGOING_PD
-#                 }
-
-#         features = pd.DataFrame(data, index=[0])
-#         return features
-#     input_df = user_input_features()
-#     # df = input_df.iloc[:]
-#     # Displays the user input features
-#     st.subheader('User Input features')
-
-#     st.write('Awaiting CSV file to be uploaded. Currently using example input parameters (shown below).')
-#     st.write(input_df.iloc[:1])
-    
-#     if input_df is not None:
-#         # Reads in saved classification model
-#         lstmodel = listmodel('model/')
-#         # st.write(lstmodel)
-#         tmp = [i.split('.')[0] for i in lstmodel]
-#         col1, col2, col3 = st.columns([1,5,1])
-#         with col2 :
-#             option = st.selectbox('Select Model:',tmp)
-#             st.write('You selected model: {}'.format(str(option)))
-#             lstmodel[tmp.index(option)]
-#         st_result(lstmodel[tmp.index(option)], input_df, True)
-    
-
-# def main():
-#     with st.sidebar:  
-#             data = None
-#             data = st_header(data)
-#             clf = st_body()
-#             if clf is not None and data is True:
-#                 df = None
-#                 st_result(clf, df, False)
-#             else:
-#                 st.write('Please upload files and select predection model!')
-                
-            
-            
-
-#     tab1, tab2, tab3 = st.tabs(["Summary", "Details", "Simulation"])
-#     with tab1:
-#         st.header("Summary")
-#         status_body() 
-#         summary_chart()
-#     with tab2:
-#         history_chart()
-#     with tab3:
-#         simulation_app()
-    
-# pip install streamlit
-# pip install numpy
-# pip install joblib
-# pip install openpyxl
-
-
-
 # from tkinter import X
 import streamlit as st
 import pandas as pd
@@ -308,6 +10,7 @@ import glob
 import openpyxl 
 import openpyxl
 import csv
+import secrets
 
 
 from azure_auth import (
@@ -563,16 +266,31 @@ def ensure_authenticated():
 
     def clear_query_params():
         st.query_params.clear()
-    auth_flow = st.session_state.get("auth_flow")
+    def _get_single_value(value):
+        if isinstance(value, (list, tuple)):
+            return value[0]
+        return value
 
-    if "code" in query_params and auth_flow:
-        result = auth_manager.exchange_code_for_token(dict(query_params), auth_flow)
+    code = _get_single_value(query_params.get("code"))
+    state = _get_single_value(query_params.get("state"))
+
+    expected_state = st.session_state.get("auth_state")
+
+    if code:
+        if expected_state and state != expected_state:
+            st.error("Authentication state mismatch. Please try signing in again.")
+            st.session_state.pop("auth_state", None)
+            st.session_state.pop("login_url", None)
+            clear_query_params()
+            st.stop()
+
+        result = auth_manager.exchange_code_for_token(code)
         if "error" in result:
             st.error(f"Authentication failed: {result.get('error_description')}")
             st.stop()
 
         st.session_state["user"] = result.get("id_token_claims", {})
-        st.session_state.pop("auth_flow", None)
+        st.session_state.pop("auth_state", None)
         st.session_state.pop("login_url", None)
         clear_query_params()
 
@@ -582,17 +300,28 @@ def ensure_authenticated():
             "The app requests the User.Read permission."
         )
         if st.button("Sign in with Microsoft", type="primary"):
-            st.session_state["auth_flow"] = auth_manager.build_auth_code_flow()
-            st.session_state["login_url"] = st.session_state["auth_flow"].get("auth_uri")
+            state_token = secrets.token_urlsafe(16)
+            st.session_state["auth_state"] = state_token
+            st.session_state["login_url"] = auth_manager.build_authorization_url(
+                state=state_token
+            )
 
         login_url = st.session_state.get("login_url")
         if login_url:
-            st.markdown(f"[Continue to Microsoft login]({login_url})")
+            st.markdown(
+                f'<a href="{login_url}" target="_self">Continue to Microsoft login</a>',
+                unsafe_allow_html=True,
+            )
         st.stop()
 
     user = st.session_state.get("user", {})
     user_display = user.get("name") or user.get("preferred_username") or "user"
     st.sidebar.success(f"Signed in as {user_display}")
+    if st.sidebar.button("Sign out"):
+        for key in ("user", "auth_state", "login_url"):
+            st.session_state.pop(key, None)
+        clear_query_params()
+        st.rerun()
 def get_csv(df):
     
     csv = df.to_csv(index=False)

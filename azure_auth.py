@@ -59,7 +59,7 @@ ENV_CLIENT_ID = "AZURE_CLIENT_ID"
 ENV_TENANT_ID = "AZURE_TENANT_ID"
 ENV_CLIENT_SECRET = "AZURE_CLIENT_SECRET"
 ENV_REDIRECT_URI = "AZURE_REDIRECT_URI"
-DEFAULT_REDIRECT_URI = "https://mullermu-swg-streamlit-2-app-zv97wo.streamlit.app/oauth2callback"
+DEFAULT_REDIRECT_URI = "AZURE_REDIRECT_URI"
 
 
 def _get_setting(env_var: str, secret_key: str) -> str:

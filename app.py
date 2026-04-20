@@ -3,8 +3,6 @@
 # pip install joblib
 # pip install openpyxl
 
-
-
 # from tkinter import X
 import streamlit as st
 import pandas as pd
@@ -16,6 +14,16 @@ import model_predict
 import glob
 import openpyxl 
 import csv
+from data_split import Data_Split
+
+#-------------------------------------------
+# addition v3
+#-------------------------------------------
+import tensorflow as tf
+from source_code.util.data_processing import split_and_savefile
+from source_code.util.app_switchgear_v2 import func_main
+#-------------------------------------------
+
 # from streamlitapp.Data_Input import data_input
 
 st.set_page_config(
@@ -43,34 +51,218 @@ def listmachine(path):
     return os.listdir(path)
 
 
-def st_header(data):
-    st.title("Switch Gear Status Classification App")
-    
-    with st.container():
-        
-        col1, col2, col3 = st.columns([1,10,1])
-        
-        with col2 :
-            # st.markdown("{}".format(str(word)))
-            uploaded_file = st.file_uploader("Choose a A1-A16 file")
-            
-            # st.markdown("{}".format(str(word)))
-            uploaded_file2 = st.file_uploader("Choose a A18-A31 file")
-            
-            if uploaded_file is not None and uploaded_file2 is not None:
-                import data_split
-                data_split.Data_Split.split(uploaded_file)
-                data_split.Data_Split.split(uploaded_file2)
-                data = True
-                
-                # st.write(data.head())
-                
-                # get_data1(data)
-                # st.table(data)
-                # import Data_split
-                # Data_split.data_input(data)
-    return data
 
+# =========================================================
+# CLEAR FOLDER FUNCTION
+# =========================================================
+def clear_folder(folder_path):
+    """Delete all files in a folder"""
+    if os.path.exists(folder_path):
+        for f in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+
+
+def st_header(data):
+
+    st.title("Switch Gear Status Classification App")
+
+    output_status = False
+    selected_model = None
+
+    # =====================================================
+    # INIT SESSION STATE
+    # =====================================================
+    if "upload_done" not in st.session_state:
+        st.session_state.upload_done = False
+
+    if "selected_model" not in st.session_state:
+        st.session_state.selected_model = None
+
+    if "uploader_key" not in st.session_state:
+        st.session_state.uploader_key = 0
+
+    if "start_upload" not in st.session_state:
+        st.session_state.start_upload = False
+
+    # =====================================================
+    # UI CONTAINER
+    # =====================================================
+    with st.container():
+
+        spacer1, main_col, spacer2 = st.columns([1, 10, 1])
+
+        with main_col:
+
+            # -------------------------------------------------
+            # FILE UPLOADERS
+            # -------------------------------------------------
+            uploaded_file1 = st.file_uploader(
+                "Choose A1-A16 file",
+                type=["xlsx"],
+                key=f"file1_{st.session_state.uploader_key}"
+            )
+
+            uploaded_file2 = st.file_uploader(
+                "Choose A18-A31 file",
+                type=["xlsx"],
+                key=f"file2_{st.session_state.uploader_key}"
+            )
+
+            # =================================================
+            # BUTTONS
+            # =================================================
+            col_upload, col_reset = st.columns(2)
+
+            # Upload button
+            with col_upload:
+                if st.button(
+                    "Upload Files",
+                    disabled=not (uploaded_file1 and uploaded_file2)
+                ):
+                    st.session_state.start_upload = True
+
+            # Clear button
+            with col_reset:
+                if st.button("🔄 Clear Status"):
+
+                    st.session_state.start_upload = False
+                    st.rerun()
+
+                   
+            # =====================================================
+            # PROCESSING STATUS (FULL WIDTH)
+            # =====================================================
+            if st.session_state.start_upload:
+
+                with st.status("Processing files...", expanded=True) as status:
+
+                    v0_ok = False
+                    v3_ok = False
+
+                    progress_text = st.empty()   
+
+                    # =================================================
+                    # STEP 1 — MODEL v0 (FORMAT CHECK)
+                    # =================================================
+                    status.update(
+                        label="Step 1/3 — Checking Model v0 format...",
+                        state="running"
+                    )
+
+                    try:
+                        # ---------- FILE 1 ----------
+                        progress_text.info("📂 Checking files... (1/2)")
+
+                        Data_Split(uploaded_file1).split()
+
+                        # ---------- FILE 2 ----------
+                        progress_text.info("📂 Checking files... (2/2)")
+
+                        Data_Split(uploaded_file2).split()
+
+                        v0_ok = True
+                        progress_text.success("✅ Model v0 format detected")
+
+                    except Exception:
+                        v0_ok = False
+                        progress_text.error("❌ Model v0 not supported")
+
+                    # =================================================
+                    # STEP 2 — model v3 (FULL PROCESSING)
+                    # =================================================
+                    status.update(
+                        label="Step 2/3 — Checking model v3 format...",
+                        state="running"
+                    )
+
+                    try:
+                        # ---------- FILE 1 ----------
+                        progress_text.info("📂 Processing files... (1/2)")
+
+                        split_and_savefile(uploaded_file1).split(
+                            status=status,
+                            progress_text=progress_text  
+                        )
+
+                        # ---------- FILE 2 (ONLY IF FILE 1 OK) ----------
+                        progress_text.info("📂 Processing files... (2/2)")
+
+                        split_and_savefile(uploaded_file2).split(
+                            status=status,
+                            progress_text=progress_text
+                        )
+
+                        v3_ok = True
+                        progress_text.success("✅ model v3 format detected")
+
+                    except Exception:
+                        v3_ok = False
+                        progress_text.error("❌ model v3 not supported")
+
+                    # =================================================
+                    # STEP 3 — FINAL DECISION
+                    # =================================================
+                    status.update(
+                        label="Step 3/3 — Validating dataset...",
+                        state="running"
+                    )
+
+                    if not v0_ok and not v3_ok:
+
+                        st.error("⛔ Dataset not supported by any model")
+                        st.warning("Please check file format and upload again")
+
+                        status.update(state="complete")
+                        st.session_state.start_upload = False
+                        return False, None
+
+                    elif v0_ok and not v3_ok:
+
+                        st.success("✅ Compatible with Model v0")
+                        st.info("👉 Go to 'Select Model' section to continue")
+                        selected_model = "v0"
+
+                    elif v3_ok and not v0_ok:
+
+                        st.success("✅ Compatible with model v3")
+                        st.info("👉 Open 'Switchgear Health Index' tab")
+                        selected_model = "v3"
+
+                    else:
+
+                        st.success("✅ Compatible with BOTH models")
+
+                        st.warning(
+                            "👉 Please choose model:\n"
+                            "• Model v0 → 'Select Model'\n"
+                            "• model v3 → 'Switchgear Health Index'"
+                        )
+
+                        selected_model = "v3"
+
+                    st.info(f"➡️ Selected model (default): {selected_model}")
+
+                    # =================================================
+                    # COMPLETE
+                    # =================================================
+                    status.update(
+                        label="Files processed successfully ✅",
+                        state="complete"
+                    )
+
+            
+
+
+        # SAVE STATE
+        st.session_state.upload_done = True
+        st.session_state.selected_model = selected_model
+        st.session_state.start_upload = False
+        output_status = True
+
+    return output_status, selected_model
 
 
 def st_body():
@@ -82,7 +274,7 @@ def st_body():
     col1, col2, col3 = st.columns([1,10,1])
     with col2 :
         with st.form(key='my_form'):
-            option = st.selectbox('Select Model:',tmp,key="my_option")
+            option = st.selectbox('Select Model (Model v0):',tmp,key="my_option")
             submitted = st.form_submit_button('selected model and predict')
             if submitted:
                 st.write('You selected model: {}'.format(str(option)))
@@ -102,7 +294,7 @@ def st_body():
     # filename = [ ]
     # for i in csvfiles:
     #         filename.append(i.extract().get_text())
-
+        model_name = select_model()
 
 def st_result(clf, df, sim = False):
     if clf is not None:
@@ -263,14 +455,17 @@ def simulation_app():
             st.write('You selected model: {}'.format(str(option)))
             lstmodel[tmp.index(option)]
         st_result(lstmodel[tmp.index(option)], input_df, True)
-    
+
 
 def main():
     with st.sidebar:  
-            data = None
-            data = st_header(data)
+            status = None
+            status, model = st_header(status)
+
+            # if status:
+            #     st.write(f"Selected model: {model}")
             clf = st_body()
-            if clf is not None and data is True:
+            if clf is not None and status is True:
                 df = None
                 st_result(clf, df, False)
             else:
@@ -279,7 +474,7 @@ def main():
             
             
 
-    tab1, tab2, tab3 = st.tabs(["Summary", "Details", "Simulation"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Summary", "Details", "Simulation","Switchgear Health Index"])
     with tab1:
         st.header("Summary")
         status_body() 
@@ -288,6 +483,13 @@ def main():
         history_chart()
     with tab3:
         simulation_app()
+               
+    with tab4:
+        #-------------------------------------------
+        # addition v3
+        #-------------------------------------------
+        func_main()
+
 
 
 main()

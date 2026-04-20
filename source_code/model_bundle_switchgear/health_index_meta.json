@@ -1,0 +1,22 @@
+{
+    "window_size": 7,
+    "low_th": 1.3117126714000895,
+    "high_th": 4.109981489681703,
+    "low_p": 95,
+    "high_p": 99,
+    "features": [
+        "PD_raw_max_avg",
+        "PD_trend_max_avg",
+        "PD_growth_rate_avg",
+        "PD_spread_count_avg",
+        "PD_multi_high_count",
+        "PD_slope7",
+        "PD_instability",
+        "Temp_system_volatility",
+        "PD_burst_count_24h_avg",
+        "PD_persistence_24h_avg"
+    ],
+    "thresholds": {
+        "daily_max": 7.7151083276804275
+    }
+}

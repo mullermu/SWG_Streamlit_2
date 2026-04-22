@@ -223,7 +223,18 @@ def classify_risk2(df):
     #     sensor_high2,
     #     "health_index"
     # ] = 4
-
+    ## Update Condition: sensor ต่ำ + Temp ต่ำ + Medium zone (df["health_index"] == 2) → downgrade เป็น 1
+    # New rule: sensor ต่ำ → downgrade เป็น 1
+    sensor_high3 = (
+        (df["PD_raw_max_max"] < 500) &
+        (df["Temp_raw_max_max"] < 40)
+    )
+ 
+    df.loc[
+        (df["health_index"] == 2) &
+        sensor_high3,
+        "health_index"
+    ] = 1
     return df
 
 def prepare_result_dataset(

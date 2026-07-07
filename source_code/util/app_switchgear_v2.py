@@ -784,11 +784,17 @@ def _upsert_output_folder(engine, output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     total_rows = 0
     progress = st.progress(0.0)
 
-    with engine.begin() as conn:
-        for i, csv_path in enumerate(files):
-            machine = _machine_name_from_path(csv_path)
-            progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
-            df = pd.read_csv(csv_path)
+    # One transaction PER MACHINE, not one for the whole loop: Neon is
+    # serverless and its pooler can recycle/drop a long-idle or long-running
+    # connection. Re-checking out a connection from the pool for each
+    # machine lets pool_pre_ping validate (and transparently reconnect)
+    # before each machine's writes, instead of one connection having to
+    # survive the entire multi-minute, 31-machine operation uninterrupted.
+    for i, csv_path in enumerate(files):
+        machine = _machine_name_from_path(csv_path)
+        progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
+        df = pd.read_csv(csv_path)
+        with engine.begin() as conn:
             total_rows += upsert_dataframe(conn, df, machine)
 
     progress.progress(1.0, text="Done")

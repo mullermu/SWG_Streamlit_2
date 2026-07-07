@@ -103,18 +103,17 @@ def get_engine():
     # requires SSL, so it's configured explicitly via ssl_context instead.
     url = url.difference_update_query(["sslmode", "channel_binding"])
 
+    # No `timeout` connect_arg: pg8000 wraps its socket via .makefile() for
+    # buffered reads, and CPython's own docs warn that settimeout() combined
+    # with makefile() can leave the buffered file object in an inconsistent
+    # state if a timeout ever fires mid-read — which can silently hang
+    # forever afterward instead of raising a clean error. Better to let a
+    # genuinely unreachable host fail slowly via the OS-level TCP timeout
+    # than risk that failure mode during a real, just-slow save.
     return create_engine(
         url,
         pool_pre_ping=True,
-        connect_args={
-            "ssl_context": ssl.create_default_context(),
-            # NOTE: pg8000 applies this as the socket's settimeout() once at
-            # connect time, and that same timeout then applies to EVERY
-            # subsequent read/write on the connection, not just the initial
-            # handshake — so this must stay generous enough for a full
-            # upsert round-trip, not just "fail fast if unreachable".
-            "timeout": 30,
-        },
+        connect_args={"ssl_context": ssl.create_default_context()},
     )
 
 

@@ -16,6 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from io import BytesIO
+from datetime import datetime
 
 from source_code.util.feature_engineering import  SwitchgearFeatureEngineering
 from source_code.util.data_processing import prepare_switchgear_df
@@ -820,6 +821,43 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
                 st.error(f"Connection failed: {e}")
             else:
                 st.success(f"Connected ✅ — {version}")
+
+    with st.expander("✍️ Manual Insert (single row)"):
+        st.caption(
+            "Writes one row directly — useful to check whether the database "
+            "write itself works, separate from the full multi-row save below."
+        )
+        with st.form("sw_manual_insert_form"):
+            machine = st.selectbox(
+                "Machine", [f"A{i}" for i in range(1, 32)], key="sw_manual_machine"
+            )
+            date_val = st.date_input("Date", key="sw_manual_date")
+            time_val = st.time_input("Time", key="sw_manual_time")
+            health_index = st.number_input(
+                "Health Index", value=1.0, step=1.0, key="sw_manual_health_index"
+            )
+            status = st.number_input(
+                "Status", value=1, step=1, key="sw_manual_status"
+            )
+            manual_submitted = st.form_submit_button("Insert Row")
+
+        if manual_submitted:
+            row_df = pd.DataFrame([{
+                "machine": machine,
+                "datetime": datetime.combine(date_val, time_val),
+                "date": date_val,
+                "health_index": health_index,
+                "status": int(status),
+            }])
+            with st.spinner("Inserting..."):
+                try:
+                    ensure_table_exists(engine)
+                    with engine.begin() as conn:
+                        n = upsert_dataframe(conn, row_df, machine)
+                except Exception as e:
+                    st.error(f"Manual insert failed: {e}")
+                else:
+                    st.success(f"Inserted/updated {n} row ✅")
 
     if st.button("💾 Save to Database", key="sw_save_btn"):
         with st.spinner("Saving results to database..."):

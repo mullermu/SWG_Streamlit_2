@@ -158,5 +158,9 @@ def reset_table(engine):
         conn.execute(text(f"TRUNCATE TABLE {TABLE_NAME}"))
 
 
-def fetch_all_results(engine) -> pd.DataFrame:
-    return pd.read_sql(f"SELECT * FROM {TABLE_NAME} ORDER BY machine, datetime", engine)
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_all_results(_engine) -> pd.DataFrame:
+    # Leading underscore tells st.cache_data to key on call identity rather
+    # than trying to hash the Engine object; the ttl bounds how stale a
+    # repeated "download all" click can be without hitting Postgres again.
+    return pd.read_sql(f"SELECT * FROM {TABLE_NAME} ORDER BY machine, datetime", _engine)

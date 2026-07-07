@@ -721,8 +721,11 @@ def _machine_name_from_path(csv_path):
 
 
 def _build_workbook_from_output_folder(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
-    wb = openpyxl.Workbook()
-    del wb[wb.sheetnames[0]]
+    # write_only streams rows straight to a temp file instead of keeping
+    # every cell as an in-memory object across all sheets, which matters
+    # here: ~31 sheets x thousands of rows in normal mode can be a large
+    # memory spike on a memory-constrained deployment.
+    wb = openpyxl.Workbook(write_only=True)
 
     for csv_path in _list_output_files(output_folder):
         ws = wb.create_sheet(title=_machine_name_from_path(csv_path))
@@ -734,8 +737,7 @@ def _build_workbook_from_output_folder(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
 
 
 def _build_workbook_from_dataframe(df: pd.DataFrame):
-    wb = openpyxl.Workbook()
-    del wb[wb.sheetnames[0]]
+    wb = openpyxl.Workbook(write_only=True)
 
     for machine, group in df.groupby("machine"):
         ws = wb.create_sheet(title=str(machine))
@@ -787,6 +789,7 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
             except Exception as e:
                 st.error(f"Save failed: {e}")
             else:
+                st.session_state.pop("sw_download_bytes", None)
                 st.success(f"Saved/updated {total_rows} rows to the database ✅")
 
     with st.expander("⚠️ Reset Database"):
@@ -807,6 +810,7 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
                 except Exception as e:
                     st.error(f"Reset failed: {e}")
                 else:
+                    st.session_state.pop("sw_download_bytes", None)
                     st.success(f"Database reset and reloaded with {total_rows} rows ✅")
 
     download_choice = st.radio(
@@ -815,33 +819,42 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
         key="sw_download_choice"
     )
 
-    if download_choice == "Download last results.":
-        wb = _build_workbook_from_output_folder(output_folder)
-        file_name = "Switchgear_Last_Results.xlsx"
-    else:
-        try:
-            df = fetch_all_results(engine)
-        except Exception as e:
-            st.error(f"Could not read database: {e}")
-            return
+    # Building the workbook (and, for the "all database results" option,
+    # querying the whole table) is expensive — only do it when explicitly
+    # requested, not on every rerun the tab happens to go through.
+    if st.button("📦 Prepare Download", key="sw_prepare_download_btn"):
+        with st.spinner("Preparing file..."):
+            if download_choice == "Download last results.":
+                wb = _build_workbook_from_output_folder(output_folder)
+                file_name = "Switchgear_Last_Results.xlsx"
+            else:
+                try:
+                    df = fetch_all_results(engine)
+                except Exception as e:
+                    st.error(f"Could not read database: {e}")
+                    df = None
 
-        if df.empty:
-            st.warning("No saved results yet — click 'Save to Database' first.")
-            return
+                if df is not None and df.empty:
+                    st.warning("No saved results yet — click 'Save to Database' first.")
+                    df = None
 
-        wb = _build_workbook_from_dataframe(df)
-        file_name = "Switchgear_Database_Results.xlsx"
+                wb = _build_workbook_from_dataframe(df) if df is not None else None
+                file_name = "Switchgear_Database_Results.xlsx"
 
-    buffer = BytesIO()
-    wb.save(buffer)
+            if wb is not None:
+                buffer = BytesIO()
+                wb.save(buffer)
+                st.session_state["sw_download_bytes"] = buffer.getvalue()
+                st.session_state["sw_download_filename"] = file_name
 
-    st.download_button(
-        label="Download Results",
-        data=buffer.getvalue(),
-        file_name=file_name,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        key="sw_download_btn"
-    )
+    if st.session_state.get("sw_download_bytes"):
+        st.download_button(
+            label=f"Download {st.session_state['sw_download_filename']}",
+            data=st.session_state["sw_download_bytes"],
+            file_name=st.session_state["sw_download_filename"],
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="sw_download_btn"
+        )
 
 def func_main():
 

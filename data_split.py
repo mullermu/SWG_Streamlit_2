@@ -78,15 +78,14 @@ class Data_Split(object):
 
         uploaded_file.seek(0)
 
-        sheets = pd.read_excel(
-            uploaded_file,
-            index_col=False,
-            sheet_name=None,
-            keep_default_na=False
-        )
+        # Open once and parse one sheet at a time below, instead of
+        # pd.read_excel(sheet_name=None) which would hold every sheet's
+        # DataFrame in memory simultaneously (a major memory spike for a
+        # ~31-sheet workbook on a memory-constrained deployment).
+        excel_file = pd.ExcelFile(uploaded_file, engine="openpyxl")
 
         ignore = ['PD PI tag list', 'Temp PI tag list']
-        valid_sheets = [s for s in sheets if s not in ignore]
+        valid_sheets = [s for s in excel_file.sheet_names if s not in ignore]
 
         if len(valid_sheets) == 0:
             raise ValueError("No valid sheets")
@@ -111,7 +110,7 @@ class Data_Split(object):
         # ===== PROCESS ALL SHEETS (NO UI UPDATE HERE) =====
         for sheet_name in valid_sheets:
 
-            df1 = sheets[sheet_name]
+            df1 = excel_file.parse(sheet_name, index_col=False, keep_default_na=False)
 
             try:
 

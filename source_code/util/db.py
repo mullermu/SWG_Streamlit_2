@@ -88,6 +88,12 @@ def get_engine():
             "or add it to .streamlit/secrets.toml (see .streamlit/secrets.toml.example)."
         )
 
+    # Force the psycopg (v3) driver regardless of the scheme the user's
+    # connection string uses (Neon/most guides give a plain "postgresql://"
+    # URL, which SQLAlchemy would otherwise default to psycopg2).
+    if connection_string.startswith("postgresql://"):
+        connection_string = "postgresql+psycopg://" + connection_string[len("postgresql://"):]
+
     return create_engine(
         connection_string,
         pool_pre_ping=True,

@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import os
+import glob
+import csv
+import openpyxl
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -698,6 +701,126 @@ def run_fleet_prediction():
         )
 
     return df_result
+
+# =====================================================
+# SAVE TO DATABASE / DOWNLOAD RESULTS
+# =====================================================
+SWITCHGEAR_OUTPUT_FOLDER = "data/output"
+SWITCHGEAR_DB_PATH = "data/switchgear_db/Results.xlsx"
+SWITCHGEAR_LAST_RESULTS_PATH = "data/switchgear_db/Last_Results.xlsx"
+
+def _build_workbook_from_csvs(files):
+    wb = openpyxl.Workbook()
+    del wb[wb.sheetnames[0]]
+
+    for f_path, f_name in files:
+        f_short_name, _ = os.path.splitext(f_name)
+        with open(os.path.join(f_path, f_name)) as f_input:
+            ws = wb.create_sheet(title=f_short_name)
+            for row in csv.reader(f_input):
+                ws.append(row)
+
+    return wb
+
+def create_last_results_switchgear(
+    output_folder=SWITCHGEAR_OUTPUT_FOLDER,
+    last_results_path=SWITCHGEAR_LAST_RESULTS_PATH
+):
+    os.makedirs(os.path.dirname(last_results_path), exist_ok=True)
+
+    files = [os.path.split(p) for p in glob.glob(f"{output_folder}/*.csv")]
+
+    wb = _build_workbook_from_csvs(files)
+    wb.save(last_results_path)
+
+def save_and_download_results(
+    output_folder=SWITCHGEAR_OUTPUT_FOLDER,
+    db_path=SWITCHGEAR_DB_PATH,
+    last_results_path=SWITCHGEAR_LAST_RESULTS_PATH
+):
+    st.subheader("💾 Save & Download Results")
+
+    files = [os.path.split(p) for p in glob.glob(f"{output_folder}/*.csv")]
+
+    if not files:
+        st.info("No prediction results available yet. Run a prediction first.")
+        return
+
+    save_mode = st.radio(
+        "Do you want to save data to database?",
+        (
+            "Yes, this is new data.",
+            "No, data was the same as the old one.",
+            "Replace all with the new one."
+        ),
+        key="sw_save_mode"
+    )
+    save_btn = st.button("Save to Database", key="sw_save_btn")
+
+    if save_btn:
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+        if save_mode == "Yes, this is new data.":
+            if not os.path.exists(db_path):
+                wb = _build_workbook_from_csvs(files)
+            else:
+                wb = openpyxl.load_workbook(db_path)
+
+                for f_path, f_name in files:
+                    f_short_name, _ = os.path.splitext(f_name)
+
+                    with open(os.path.join(f_path, f_name)) as f_input:
+                        csv_reader = csv.reader(f_input)
+                        first_line = next(csv_reader)
+
+                        if f_short_name not in wb.sheetnames:
+                            ws = wb.create_sheet(title=f_short_name)
+                            ws.append(first_line)
+                        else:
+                            ws = wb[f_short_name]
+
+                        for row in csv_reader:
+                            if row != first_line:
+                                ws.append(row)
+
+            wb.save(db_path)
+            create_last_results_switchgear(output_folder, last_results_path)
+            st.success("Added to Database ✅")
+
+        elif save_mode == "No, data was the same as the old one.":
+            st.info("Nothing saved")
+            create_last_results_switchgear(output_folder, last_results_path)
+
+        elif save_mode == "Replace all with the new one.":
+            wb = _build_workbook_from_csvs(files)
+            wb.save(db_path)
+            create_last_results_switchgear(output_folder, last_results_path)
+            st.success("Replaced database ✅")
+
+    download_choice = st.radio(
+        "Which file would you like to download?",
+        ("Download last results.", "Download all database results."),
+        key="sw_download_choice"
+    )
+
+    file_map = {
+        "Download last results.": (last_results_path, "Switchgear_Last_Results.xlsx"),
+        "Download all database results.": (db_path, "Switchgear_Database_Results.xlsx")
+    }
+    file_path, file_name = file_map[download_choice]
+
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            st.download_button(
+                label="Download Results",
+                data=f.read(),
+                file_name=file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="sw_download_btn"
+            )
+    else:
+        st.warning("No saved results yet — click 'Save to Database' first.")
+
 def func_main():
 
     st.header("Switchgear Health Index")
@@ -792,4 +915,6 @@ def func_main():
         path_raw="data/raw_data",
         path_output="data/output"
     )
+
+    save_and_download_results()
 

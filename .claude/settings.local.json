@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-Location \"c:\\\\Users\\\\26007014\\\\OneDrive - PTT Global Chemical Public Company Limited\\\\Desktop\\\\Machine Learning\\\\SWG_2026\\\\SWG_Streamlit_2\"; Get-ChildItem data/raw_data/ | Select-Object -First 10 | ForEach-Object { \"$\\($_.Name\\) - $\\($_.Length\\) bytes\" }; Write-Host \"---Total:\"; \\(Get-ChildItem data/raw_data/\\).Count)"
+    ]
+  }
+}

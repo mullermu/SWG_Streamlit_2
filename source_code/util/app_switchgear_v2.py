@@ -749,11 +749,18 @@ def _build_workbook_from_dataframe(df: pd.DataFrame):
 def _upsert_output_folder(engine, output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     ensure_table_exists(engine)
 
+    files = _list_output_files(output_folder)
     total_rows = 0
-    for csv_path in _list_output_files(output_folder):
-        machine = _machine_name_from_path(csv_path)
-        df = pd.read_csv(csv_path)
-        total_rows += upsert_dataframe(engine, df, machine)
+    progress = st.progress(0.0)
+
+    with engine.begin() as conn:
+        for i, csv_path in enumerate(files):
+            machine = _machine_name_from_path(csv_path)
+            progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
+            df = pd.read_csv(csv_path)
+            total_rows += upsert_dataframe(conn, df, machine)
+
+    progress.progress(1.0, text="Done")
 
     return total_rows
 
@@ -769,8 +776,8 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
 
     try:
         engine = get_engine()
-    except RuntimeError as e:
-        st.error(str(e))
+    except Exception as e:
+        st.error(f"Could not connect to database: {e}")
         return
 
     if st.button("💾 Save to Database", key="sw_save_btn"):

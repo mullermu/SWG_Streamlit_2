@@ -7,7 +7,11 @@ import os
 
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine, text, MetaData, Table
+from sqlalchemy import (
+    create_engine, Column, Table, MetaData,
+    String, DateTime, Date, Float, Boolean, Integer,
+    UniqueConstraint, Index, text,
+)
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 ENV_DATABASE_URL = "DATABASE_URL"
@@ -32,6 +36,29 @@ FEATURE_COLUMNS = [
 ]
 
 CONFLICT_KEY = ["machine", "datetime"]
+
+# Defined explicitly (not reflected from the DB) so upserts never need an
+# extra round-trip to introspect the schema before every insert.
+metadata = MetaData()
+
+switchgear_results = Table(
+    TABLE_NAME,
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("machine", String, nullable=False),
+    Column("datetime", DateTime),
+    Column("start", DateTime),
+    Column("end", DateTime),
+    Column("date", Date),
+    *[
+        Column(col, Boolean if col in BOOLEAN_COLUMNS else Float)
+        for col in FEATURE_COLUMNS
+    ],
+    Column("health_index", Float),
+    Column("status", Integer),
+    UniqueConstraint("machine", "datetime"),
+    Index(f"idx_{TABLE_NAME}_machine", "machine"),
+)
 
 
 def _get_setting(env_var: str) -> str:
@@ -61,41 +88,15 @@ def get_engine():
             "or add it to .streamlit/secrets.toml (see .streamlit/secrets.toml.example)."
         )
 
-    return create_engine(connection_string, pool_pre_ping=True)
-
-
-def _column_ddl():
-    columns = ['machine TEXT NOT NULL']
-
-    for col in sorted(TIMESTAMP_COLUMNS):
-        name = f'"{col}"' if col == "end" else col
-        columns.append(f"{name} TIMESTAMP")
-
-    for col in DATE_COLUMNS:
-        columns.append(f"{col} DATE")
-
-    for col in FEATURE_COLUMNS:
-        col_type = "BOOLEAN" if col in BOOLEAN_COLUMNS else "DOUBLE PRECISION"
-        columns.append(f"{col} {col_type}")
-
-    columns.append("health_index DOUBLE PRECISION")
-    columns.append("status INTEGER")
-    columns.append("UNIQUE (machine, datetime)")
-
-    return ",\n    ".join(columns)
+    return create_engine(
+        connection_string,
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": 10},
+    )
 
 
 def ensure_table_exists(engine):
-    ddl = f"""
-    CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-        id SERIAL PRIMARY KEY,
-        {_column_ddl()}
-    );
-    CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_machine ON {TABLE_NAME} (machine);
-    """
-
-    with engine.begin() as conn:
-        conn.execute(text(ddl))
+    metadata.create_all(engine, checkfirst=True)
 
 
 def _prepare_dataframe(df: pd.DataFrame, machine: str) -> pd.DataFrame:
@@ -123,7 +124,9 @@ def _prepare_dataframe(df: pd.DataFrame, machine: str) -> pd.DataFrame:
     return result.astype(object).where(pd.notnull(result), None)
 
 
-def upsert_dataframe(engine, df: pd.DataFrame, machine: str, chunk_size: int = 500) -> int:
+def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 500) -> int:
+    """Upsert one machine's dataframe using an already-open connection/transaction."""
+
     df = _prepare_dataframe(df, machine)
 
     if df.empty:
@@ -132,18 +135,14 @@ def upsert_dataframe(engine, df: pd.DataFrame, machine: str, chunk_size: int = 5
     table_columns = list(df.columns)
     rows = df.to_dict(orient="records")
 
-    metadata = MetaData()
-    table = Table(TABLE_NAME, metadata, autoload_with=engine)
-
-    with engine.begin() as conn:
-        for start in range(0, len(rows), chunk_size):
-            chunk = rows[start:start + chunk_size]
-            stmt = pg_insert(table).values(chunk)
-            stmt = stmt.on_conflict_do_update(
-                index_elements=CONFLICT_KEY,
-                set_={c: getattr(stmt.excluded, c) for c in table_columns if c not in CONFLICT_KEY},
-            )
-            conn.execute(stmt)
+    for start in range(0, len(rows), chunk_size):
+        chunk = rows[start:start + chunk_size]
+        stmt = pg_insert(switchgear_results).values(chunk)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=CONFLICT_KEY,
+            set_={c: getattr(stmt.excluded, c) for c in table_columns if c not in CONFLICT_KEY},
+        )
+        conn.execute(stmt)
 
     return len(rows)
 

@@ -24,7 +24,8 @@ from source_code.util.prediction import (load_model_bundle, detect_anomaly,
                                          classify_risk, classify_risk2, risk_7day,
                                          daily_risk, prepare_result_dataset)
 from source_code.util.db import (
-    get_engine, ensure_table_exists, upsert_dataframe, reset_table, fetch_all_results
+    get_engine, ensure_table_exists, upsert_dataframe, reset_table, fetch_all_results,
+    test_connection
 )
 
 def count_files(folder_path):
@@ -781,6 +782,15 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     except Exception as e:
         st.error(f"Could not connect to database: {e}")
         return
+
+    if st.button("🔌 Test Connection", key="sw_test_conn_btn"):
+        with st.spinner("Connecting..."):
+            try:
+                version = test_connection(engine)
+            except Exception as e:
+                st.error(f"Connection failed: {e}")
+            else:
+                st.success(f"Connected ✅ — {version}")
 
     if st.button("💾 Save to Database", key="sw_save_btn"):
         with st.spinner("Saving results to database..."):

@@ -108,9 +108,21 @@ def get_engine():
         pool_pre_ping=True,
         connect_args={
             "ssl_context": ssl.create_default_context(),
-            "timeout": 10,
+            # NOTE: pg8000 applies this as the socket's settimeout() once at
+            # connect time, and that same timeout then applies to EVERY
+            # subsequent read/write on the connection, not just the initial
+            # handshake — so this must stay generous enough for a full
+            # upsert round-trip, not just "fail fast if unreachable".
+            "timeout": 30,
         },
     )
+
+
+def test_connection(engine) -> str:
+    """Run a trivial query to verify connectivity; returns the DB version string."""
+
+    with engine.connect() as conn:
+        return conn.execute(text("SELECT version()")).scalar()
 
 
 def ensure_table_exists(engine):

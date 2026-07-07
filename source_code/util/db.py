@@ -130,7 +130,7 @@ def _prepare_dataframe(df: pd.DataFrame, machine: str) -> pd.DataFrame:
     return result.astype(object).where(pd.notnull(result), None)
 
 
-def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 500) -> int:
+def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 200) -> int:
     """Upsert one machine's dataframe using an already-open connection/transaction."""
 
     df = _prepare_dataframe(df, machine)
@@ -141,14 +141,20 @@ def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 500
     table_columns = list(df.columns)
     rows = df.to_dict(orient="records")
 
+    # Built once, without an explicit multi-row .values(...) list: passing a
+    # list of param dicts to conn.execute() lets SQLAlchemy's own
+    # "insertmanyvalues" batching handle chunking, instead of us hand-building
+    # one giant combined VALUES(...),(...),(...) statement per chunk (which is
+    # a known trigger for low-level driver/C-extension crashes on large
+    # multi-row inserts).
+    stmt = pg_insert(switchgear_results)
+    stmt = stmt.on_conflict_do_update(
+        index_elements=CONFLICT_KEY,
+        set_={c: stmt.excluded[c] for c in table_columns if c not in CONFLICT_KEY},
+    )
+
     for start in range(0, len(rows), chunk_size):
-        chunk = rows[start:start + chunk_size]
-        stmt = pg_insert(switchgear_results).values(chunk)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=CONFLICT_KEY,
-            set_={c: getattr(stmt.excluded, c) for c in table_columns if c not in CONFLICT_KEY},
-        )
-        conn.execute(stmt)
+        conn.execute(stmt, rows[start:start + chunk_size])
 
     return len(rows)
 

@@ -4,6 +4,7 @@ Neon Postgres persistence for Switchgear Health Index results
 """
 
 import os
+import ssl
 
 import pandas as pd
 import streamlit as st
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String, DateTime, Date, Float, Boolean, Integer,
     UniqueConstraint, Index, text,
 )
+from sqlalchemy.engine import make_url
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 ENV_DATABASE_URL = "DATABASE_URL"
@@ -88,16 +90,26 @@ def get_engine():
             "or add it to .streamlit/secrets.toml (see .streamlit/secrets.toml.example)."
         )
 
-    # Force the psycopg (v3) driver regardless of the scheme the user's
-    # connection string uses (Neon/most guides give a plain "postgresql://"
-    # URL, which SQLAlchemy would otherwise default to psycopg2).
-    if connection_string.startswith("postgresql://"):
-        connection_string = "postgresql+psycopg://" + connection_string[len("postgresql://"):]
+    # Use pg8000 (a pure-Python driver, no bundled/compiled OpenSSL) instead
+    # of psycopg2/psycopg: both are native C extensions that link their own
+    # copy of OpenSSL, which conflicts with TensorFlow's own bundled SSL/
+    # crypto code (via grpcio) in the same process and causes native heap
+    # corruption crashes during the TLS handshake. pg8000 uses Python's
+    # stdlib ssl module instead, sidestepping that whole class of bug.
+    url = make_url(connection_string).set(drivername="postgresql+pg8000")
+
+    # sslmode/channel_binding are libpq-specific query params pg8000 doesn't
+    # understand (and would fail on as unexpected connect() kwargs) — Neon
+    # requires SSL, so it's configured explicitly via ssl_context instead.
+    url = url.difference_update_query(["sslmode", "channel_binding"])
 
     return create_engine(
-        connection_string,
+        url,
         pool_pre_ping=True,
-        connect_args={"connect_timeout": 10},
+        connect_args={
+            "ssl_context": ssl.create_default_context(),
+            "timeout": 10,
+        },
     )
 
 

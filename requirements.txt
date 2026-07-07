@@ -9,6 +9,6 @@ plotly==5.24.1
 joblib==1.5.3
 openpyxl==3.1.5
 SQLAlchemy==2.0.47
-psycopg[binary]==3.3.4
+pg8000==1.31.5
 tqdm==4.67.1
 msal==1.35.0

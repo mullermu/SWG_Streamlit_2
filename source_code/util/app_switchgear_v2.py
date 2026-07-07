@@ -721,6 +721,33 @@ def _machine_name_from_path(csv_path):
     return os.path.splitext(os.path.basename(csv_path))[0]
 
 
+def _build_results_summary(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
+    """Per-machine last-row summary, read straight from disk (no DB involved)."""
+
+    rows = []
+
+    for csv_path in _list_output_files(output_folder):
+        machine = _machine_name_from_path(csv_path)
+
+        try:
+            df = pd.read_csv(csv_path)
+            last = df.iloc[-1] if not df.empty else None
+        except Exception as e:
+            rows.append({"Switchgear": machine, "Rows": 0, "Last Date": None,
+                         "Health Index": None, "Status": f"Read error: {e}"})
+            continue
+
+        rows.append({
+            "Switchgear": machine,
+            "Rows": len(df),
+            "Last Date": last.get("date") if last is not None else None,
+            "Health Index": last.get("health_index") if last is not None else None,
+            "Status": last.get("Status") if last is not None else None,
+        })
+
+    return pd.DataFrame(rows)
+
+
 def _build_workbook_from_output_folder(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     # write_only streams rows straight to a temp file instead of keeping
     # every cell as an in-memory object across all sheets, which matters
@@ -776,6 +803,8 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     if not files:
         st.info("No prediction results available yet. Run a prediction first.")
         return
+
+    st.dataframe(_build_results_summary(output_folder), width='stretch')
 
     try:
         engine = get_engine()

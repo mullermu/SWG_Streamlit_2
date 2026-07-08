@@ -15,19 +15,13 @@ import openpyxl
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
-from io import BytesIO
-from datetime import datetime
 
 from source_code.util.feature_engineering import  SwitchgearFeatureEngineering
 from source_code.util.data_processing import prepare_switchgear_df
 from source_code.util.generate_output import plot_signal_with_daily_risk, plot_daily_monitor
-from source_code.util.prediction import (load_model_bundle, detect_anomaly,
-                                         classify_risk, classify_risk2, risk_7day,
+from source_code.util.prediction import (load_model_bundle, detect_anomaly, 
+                                         classify_risk, classify_risk2, risk_7day, 
                                          daily_risk, prepare_result_dataset)
-from source_code.util.db import (
-    get_engine, ensure_table_exists, upsert_dataframe, reset_table, fetch_all_results,
-    test_connection
-)
 
 def count_files(folder_path):
     """Count number of files in a folder"""
@@ -712,196 +706,96 @@ def run_fleet_prediction():
 # SAVE TO DATABASE / DOWNLOAD RESULTS
 # =====================================================
 SWITCHGEAR_OUTPUT_FOLDER = "data/output"
+SWITCHGEAR_DB_PATH = "data/switchgear_db/Results.xlsx"
+SWITCHGEAR_LAST_RESULTS_PATH = "data/switchgear_db/Last_Results.xlsx"
 
+def _build_workbook_from_csvs(files):
+    wb = openpyxl.Workbook()
+    del wb[wb.sheetnames[0]]
 
-def _list_output_files(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
-    return sorted(glob.glob(f"{output_folder}/*.csv"))
-
-
-def _machine_name_from_path(csv_path):
-    return os.path.splitext(os.path.basename(csv_path))[0]
-
-
-def _build_results_summary(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
-    """Per-machine last-row summary, read straight from disk (no DB involved)."""
-
-    rows = []
-
-    for csv_path in _list_output_files(output_folder):
-        machine = _machine_name_from_path(csv_path)
-
-        try:
-            df = pd.read_csv(csv_path)
-            last = df.iloc[-1] if not df.empty else None
-        except Exception as e:
-            rows.append({"Switchgear": machine, "Rows": 0, "Last Date": None,
-                         "Health Index": None, "Status": f"Read error: {e}"})
-            continue
-
-        rows.append({
-            "Switchgear": machine,
-            "Rows": len(df),
-            "Last Date": last.get("date") if last is not None else None,
-            "Health Index": last.get("health_index") if last is not None else None,
-            "Status": last.get("Status") if last is not None else None,
-        })
-
-    return pd.DataFrame(rows)
-
-
-def _build_workbook_from_output_folder(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
-    # write_only streams rows straight to a temp file instead of keeping
-    # every cell as an in-memory object across all sheets, which matters
-    # here: ~31 sheets x thousands of rows in normal mode can be a large
-    # memory spike on a memory-constrained deployment.
-    wb = openpyxl.Workbook(write_only=True)
-
-    for csv_path in _list_output_files(output_folder):
-        ws = wb.create_sheet(title=_machine_name_from_path(csv_path))
-        with open(csv_path) as f_input:
+    for f_path, f_name in files:
+        f_short_name, _ = os.path.splitext(f_name)
+        with open(os.path.join(f_path, f_name)) as f_input:
+            ws = wb.create_sheet(title=f_short_name)
             for row in csv.reader(f_input):
                 ws.append(row)
 
     return wb
 
+def create_last_results_switchgear(
+    output_folder=SWITCHGEAR_OUTPUT_FOLDER,
+    last_results_path=SWITCHGEAR_LAST_RESULTS_PATH
+):
+    os.makedirs(os.path.dirname(last_results_path), exist_ok=True)
 
-def _build_workbook_from_dataframe(df: pd.DataFrame):
-    wb = openpyxl.Workbook(write_only=True)
+    files = [os.path.split(p) for p in glob.glob(f"{output_folder}/*.csv")]
 
-    for machine, group in df.groupby("machine"):
-        ws = wb.create_sheet(title=str(machine))
-        ws.append(list(group.columns))
-        for row in group.itertuples(index=False):
-            ws.append(list(row))
+    wb = _build_workbook_from_csvs(files)
+    wb.save(last_results_path)
 
-    return wb
-
-
-def _upsert_output_folder(engine, output_folder=SWITCHGEAR_OUTPUT_FOLDER):
-    ensure_table_exists(engine)
-
-    files = _list_output_files(output_folder)
-    total_rows = 0
-    progress = st.progress(0.0)
-
-    # One transaction PER MACHINE, not one for the whole loop: Neon is
-    # serverless and its pooler can recycle/drop a long-idle or long-running
-    # connection. Re-checking out a connection from the pool for each
-    # machine lets pool_pre_ping validate (and transparently reconnect)
-    # before each machine's writes, instead of one connection having to
-    # survive the entire multi-minute, 31-machine operation uninterrupted.
-    for i, csv_path in enumerate(files):
-        machine = _machine_name_from_path(csv_path)
-        df = pd.read_csv(csv_path)
-
-        def _on_chunk(chunk_idx, total_chunks, _machine=machine, _i=i):
-            progress.progress(
-                _i / len(files),
-                text=f"Saving {_machine} ({_i + 1}/{len(files)}) — chunk {chunk_idx}/{total_chunks}..."
-            )
-
-        progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
-        with engine.begin() as conn:
-            total_rows += upsert_dataframe(conn, df, machine, on_chunk=_on_chunk)
-
-    progress.progress(1.0, text="Done")
-
-    return total_rows
-
-
-def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
+def save_and_download_results(
+    output_folder=SWITCHGEAR_OUTPUT_FOLDER,
+    db_path=SWITCHGEAR_DB_PATH,
+    last_results_path=SWITCHGEAR_LAST_RESULTS_PATH
+):
     st.subheader("💾 Save & Download Results")
 
-    files = _list_output_files(output_folder)
+    files = [os.path.split(p) for p in glob.glob(f"{output_folder}/*.csv")]
 
     if not files:
         st.info("No prediction results available yet. Run a prediction first.")
         return
 
-    st.dataframe(_build_results_summary(output_folder), width='stretch')
+    save_mode = st.radio(
+        "Do you want to save data to database?",
+        (
+            "Yes, this is new data.",
+            "No, data was the same as the old one.",
+            "Replace all with the new one."
+        ),
+        key="sw_save_mode"
+    )
+    save_btn = st.button("Save to Database", key="sw_save_btn")
 
-    try:
-        engine = get_engine()
-    except Exception as e:
-        st.error(f"Could not connect to database: {e}")
-        return
+    if save_btn:
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-    if st.button("🔌 Test Connection", key="sw_test_conn_btn"):
-        with st.spinner("Connecting..."):
-            try:
-                version = test_connection(engine)
-            except Exception as e:
-                st.error(f"Connection failed: {e}")
+        if save_mode == "Yes, this is new data.":
+            if not os.path.exists(db_path):
+                wb = _build_workbook_from_csvs(files)
             else:
-                st.success(f"Connected ✅ — {version}")
+                wb = openpyxl.load_workbook(db_path)
 
-    with st.expander("✍️ Manual Insert (single row)"):
-        st.caption(
-            "Writes one row directly — useful to check whether the database "
-            "write itself works, separate from the full multi-row save below."
-        )
-        with st.form("sw_manual_insert_form"):
-            machine = st.selectbox(
-                "Machine", [f"A{i}" for i in range(1, 32)], key="sw_manual_machine"
-            )
-            date_val = st.date_input("Date", key="sw_manual_date")
-            time_val = st.time_input("Time", key="sw_manual_time")
-            health_index = st.number_input(
-                "Health Index", value=1.0, step=1.0, key="sw_manual_health_index"
-            )
-            status = st.number_input(
-                "Status", value=1, step=1, key="sw_manual_status"
-            )
-            manual_submitted = st.form_submit_button("Insert Row")
+                for f_path, f_name in files:
+                    f_short_name, _ = os.path.splitext(f_name)
 
-        if manual_submitted:
-            row_df = pd.DataFrame([{
-                "machine": machine,
-                "datetime": datetime.combine(date_val, time_val),
-                "date": date_val,
-                "health_index": health_index,
-                "status": int(status),
-            }])
-            with st.spinner("Inserting..."):
-                try:
-                    ensure_table_exists(engine)
-                    with engine.begin() as conn:
-                        n = upsert_dataframe(conn, row_df, machine)
-                except Exception as e:
-                    st.error(f"Manual insert failed: {e}")
-                else:
-                    st.success(f"Inserted/updated {n} row ✅")
+                    with open(os.path.join(f_path, f_name)) as f_input:
+                        csv_reader = csv.reader(f_input)
+                        first_line = next(csv_reader)
 
-    if st.button("💾 Save to Database", key="sw_save_btn"):
-        with st.spinner("Saving results to database..."):
-            try:
-                total_rows = _upsert_output_folder(engine, output_folder)
-            except Exception as e:
-                st.error(f"Save failed: {e}")
-            else:
-                st.session_state.pop("sw_download_bytes", None)
-                st.success(f"Saved/updated {total_rows} rows to the database ✅")
+                        if f_short_name not in wb.sheetnames:
+                            ws = wb.create_sheet(title=f_short_name)
+                            ws.append(first_line)
+                        else:
+                            ws = wb[f_short_name]
 
-    with st.expander("⚠️ Reset Database"):
-        reset_confirmed = st.checkbox(
-            "I understand this will permanently delete all saved results.",
-            key="sw_reset_confirm"
-        )
-        if st.button(
-            "⚠️ Reset Database",
-            key="sw_reset_btn",
-            type="secondary",
-            disabled=not reset_confirmed
-        ):
-            with st.spinner("Resetting database..."):
-                try:
-                    reset_table(engine)
-                    total_rows = _upsert_output_folder(engine, output_folder)
-                except Exception as e:
-                    st.error(f"Reset failed: {e}")
-                else:
-                    st.session_state.pop("sw_download_bytes", None)
-                    st.success(f"Database reset and reloaded with {total_rows} rows ✅")
+                        for row in csv_reader:
+                            if row != first_line:
+                                ws.append(row)
+
+            wb.save(db_path)
+            create_last_results_switchgear(output_folder, last_results_path)
+            st.success("Added to Database ✅")
+
+        elif save_mode == "No, data was the same as the old one.":
+            st.info("Nothing saved")
+            create_last_results_switchgear(output_folder, last_results_path)
+
+        elif save_mode == "Replace all with the new one.":
+            wb = _build_workbook_from_csvs(files)
+            wb.save(db_path)
+            create_last_results_switchgear(output_folder, last_results_path)
+            st.success("Replaced database ✅")
 
     download_choice = st.radio(
         "Which file would you like to download?",
@@ -909,42 +803,23 @@ def save_and_download_results(output_folder=SWITCHGEAR_OUTPUT_FOLDER):
         key="sw_download_choice"
     )
 
-    # Building the workbook (and, for the "all database results" option,
-    # querying the whole table) is expensive — only do it when explicitly
-    # requested, not on every rerun the tab happens to go through.
-    if st.button("📦 Prepare Download", key="sw_prepare_download_btn"):
-        with st.spinner("Preparing file..."):
-            if download_choice == "Download last results.":
-                wb = _build_workbook_from_output_folder(output_folder)
-                file_name = "Switchgear_Last_Results.xlsx"
-            else:
-                try:
-                    df = fetch_all_results(engine)
-                except Exception as e:
-                    st.error(f"Could not read database: {e}")
-                    df = None
+    file_map = {
+        "Download last results.": (last_results_path, "Switchgear_Last_Results.xlsx"),
+        "Download all database results.": (db_path, "Switchgear_Database_Results.xlsx")
+    }
+    file_path, file_name = file_map[download_choice]
 
-                if df is not None and df.empty:
-                    st.warning("No saved results yet — click 'Save to Database' first.")
-                    df = None
-
-                wb = _build_workbook_from_dataframe(df) if df is not None else None
-                file_name = "Switchgear_Database_Results.xlsx"
-
-            if wb is not None:
-                buffer = BytesIO()
-                wb.save(buffer)
-                st.session_state["sw_download_bytes"] = buffer.getvalue()
-                st.session_state["sw_download_filename"] = file_name
-
-    if st.session_state.get("sw_download_bytes"):
-        st.download_button(
-            label=f"Download {st.session_state['sw_download_filename']}",
-            data=st.session_state["sw_download_bytes"],
-            file_name=st.session_state["sw_download_filename"],
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="sw_download_btn"
-        )
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            st.download_button(
+                label="Download Results",
+                data=f.read(),
+                file_name=file_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="sw_download_btn"
+            )
+    else:
+        st.warning("No saved results yet — click 'Save to Database' first.")
 
 def func_main():
 

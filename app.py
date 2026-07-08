@@ -312,8 +312,11 @@ def st_result(clf, df, sim = False):
         #     st.download_button("Download Classification File",get_csv(res),"../output/result_app.csv")
 def create_last_results():
     files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
-    wb = openpyxl.Workbook()
-    del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
+    # write_only streams rows straight to a temp file instead of keeping
+    # every cell as an in-memory object across all sheets, which matters
+    # here: ~30 sheets x thousands of rows in normal mode can be a large
+    # memory spike on a memory-constrained deployment.
+    wb = openpyxl.Workbook(write_only=True)
     for f_path, f_name in files:
         (f_short_name, f_extension) = os.path.splitext(f_name)
         with open(os.path.join(f_path, f_name)) as f_input:
@@ -351,8 +354,7 @@ def download_results():
         st.write("Nothing saved")
         create_last_results()
     elif saveToDB == 'Replace all with the new one.' and saveBT == True:
-        wb = openpyxl.Workbook()
-        del wb[wb.sheetnames[0]]        # Remove the default 'Sheet1'
+        wb = openpyxl.Workbook(write_only=True)
         for f_path, f_name in files:
             (f_short_name, f_extension) = os.path.splitext(f_name)
             with open(os.path.join(f_path, f_name)) as f_input:
@@ -368,13 +370,14 @@ def download_results():
     "Which file do you would like to download?",
     ('Download last results.', 'Download all database results.'))
     if downloadResults == 'Download last results.':
-        my_file = open('output/Predicted Results/Last_Results.xlsx', 'rb')
+        filePath = 'output/Predicted Results/Last_Results.xlsx'
         fileName = 'Last_Results.xlsx'
     elif downloadResults == 'Download all database results.':
-        my_file = open('output/Predicted Results/Results.xlsx', 'rb')
+        filePath = 'output/Predicted Results/Results.xlsx'
         fileName = 'Database_Results.xlsx'
-        
-    st.download_button(label = 'Download Results', data = my_file, file_name = fileName, mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    with open(filePath, 'rb') as my_file:
+        st.download_button(label = 'Download Results', data = my_file.read(), file_name = fileName, mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 def status_body():
     status = MC_status.MC_status.st_status()

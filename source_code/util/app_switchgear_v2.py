@@ -710,8 +710,11 @@ SWITCHGEAR_DB_PATH = "data/switchgear_db/Results.xlsx"
 SWITCHGEAR_LAST_RESULTS_PATH = "data/switchgear_db/Last_Results.xlsx"
 
 def _build_workbook_from_csvs(files):
-    wb = openpyxl.Workbook()
-    del wb[wb.sheetnames[0]]
+    # write_only streams rows straight to a temp file instead of keeping
+    # every cell as an in-memory object across all sheets, which matters
+    # here: ~31 sheets x thousands of rows in normal mode can be a large
+    # memory spike on a memory-constrained deployment.
+    wb = openpyxl.Workbook(write_only=True)
 
     for f_path, f_name in files:
         f_short_name, _ = os.path.splitext(f_name)

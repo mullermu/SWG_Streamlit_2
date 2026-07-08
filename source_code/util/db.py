@@ -153,8 +153,13 @@ def _prepare_dataframe(df: pd.DataFrame, machine: str) -> pd.DataFrame:
     return result.astype(object).where(pd.notnull(result), None)
 
 
-def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 200) -> int:
-    """Upsert one machine's dataframe using an already-open connection/transaction."""
+def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 200, on_chunk=None) -> int:
+    """Upsert one machine's dataframe using an already-open connection/transaction.
+
+    `on_chunk(chunk_index, total_chunks)`, if given, is called after each
+    chunk commits — used to surface progress finer than "per machine" so a
+    slow-but-working save can be told apart from a genuinely stuck one.
+    """
 
     df = _prepare_dataframe(df, machine)
 
@@ -163,6 +168,7 @@ def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 200
 
     table_columns = list(df.columns)
     rows = df.to_dict(orient="records")
+    total_chunks = (len(rows) + chunk_size - 1) // chunk_size
 
     # Built once, without an explicit multi-row .values(...) list: passing a
     # list of param dicts to conn.execute() lets SQLAlchemy's own
@@ -176,8 +182,10 @@ def upsert_dataframe(conn, df: pd.DataFrame, machine: str, chunk_size: int = 200
         set_={c: stmt.excluded[c] for c in table_columns if c not in CONFLICT_KEY},
     )
 
-    for start in range(0, len(rows), chunk_size):
+    for chunk_idx, start in enumerate(range(0, len(rows), chunk_size), start=1):
         conn.execute(stmt, rows[start:start + chunk_size])
+        if on_chunk is not None:
+            on_chunk(chunk_idx, total_chunks)
 
     return len(rows)
 

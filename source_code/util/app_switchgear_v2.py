@@ -792,10 +792,17 @@ def _upsert_output_folder(engine, output_folder=SWITCHGEAR_OUTPUT_FOLDER):
     # survive the entire multi-minute, 31-machine operation uninterrupted.
     for i, csv_path in enumerate(files):
         machine = _machine_name_from_path(csv_path)
-        progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
         df = pd.read_csv(csv_path)
+
+        def _on_chunk(chunk_idx, total_chunks, _machine=machine, _i=i):
+            progress.progress(
+                _i / len(files),
+                text=f"Saving {_machine} ({_i + 1}/{len(files)}) — chunk {chunk_idx}/{total_chunks}..."
+            )
+
+        progress.progress(i / len(files), text=f"Saving {machine} ({i + 1}/{len(files)})...")
         with engine.begin() as conn:
-            total_rows += upsert_dataframe(conn, df, machine)
+            total_rows += upsert_dataframe(conn, df, machine, on_chunk=_on_chunk)
 
     progress.progress(1.0, text="Done")
 

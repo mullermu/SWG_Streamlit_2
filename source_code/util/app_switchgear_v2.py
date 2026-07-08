@@ -824,12 +824,38 @@ def save_and_download_results(
     else:
         st.warning("No saved results yet — click 'Save to Database' first.")
 
+def preview_uploaded_data(raw_folder="data/raw_data"):
+    files = sorted(glob.glob(f"{raw_folder}/*.csv"))
+
+    if not files:
+        return
+
+    machine_names = [os.path.splitext(os.path.basename(f))[0] for f in files]
+
+    with st.expander("📄 Preview Uploaded Data", expanded=False):
+        selected_machine = st.selectbox(
+            "Select machine to preview",
+            machine_names,
+            key="sw_preview_machine"
+        )
+
+        try:
+            df = pd.read_csv(os.path.join(raw_folder, f"{selected_machine}.csv"))
+        except Exception as e:
+            st.error(f"Could not read {selected_machine}.csv: {e}")
+            return
+
+        st.caption(f"{len(df)} rows × {len(df.columns)} columns")
+        st.dataframe(df, width='stretch')
+
 def func_main():
 
     st.header("Switchgear Health Index")
 
     raw_folder = "data/raw_data"
     file_count = count_files(raw_folder)
+
+    preview_uploaded_data(raw_folder)
 
     # =====================================================
     # CONTROL PANEL

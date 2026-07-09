@@ -296,14 +296,12 @@ def st_body():
     #         filename.append(i.extract().get_text())
         model_name = select_model()
 
-def st_result(clf, df, sim = False):
+def st_result(clf, df):
     if clf is not None:
-        if sim is not True:  
-            df = None
-            model_predict.get_predict_result.getResult(clf, df, False)
-            download_results()
-        else:
-            model_predict.get_predict_result.getResult(clf, df, True)
+        df = None
+        model_predict.get_predict_result.getResult(clf, df, False)
+        st.subheader("💾 Save & Download Results")
+        download_results()
         # model = joblib.load(os.path.join("../model/",clf))
         # z = model.predict(X)
         # res = pd.concat([data,pd.DataFrame(z,columns=['Status'])],axis=1)
@@ -339,11 +337,14 @@ def download_results():
         for f_path, f_name in files:
             (f_short_name, f_extension) = os.path.splitext(f_name)
             with open(os.path.join(f_path, f_name)) as f_input:
-                ws = wb[f_short_name]
                 csv_reader = csv.reader(f_input)
                 first_line = next(csv_reader)
-                # st.write(first_line)
-                for row in csv.reader(f_input):
+                if f_short_name not in wb.sheetnames:
+                    ws = wb.create_sheet(title=f_short_name)
+                    ws.append(first_line)
+                else:
+                    ws = wb[f_short_name]
+                for row in csv_reader:
                     if row != first_line:
                         ws.append(row)
         wb.save('output/Predicted Results/Results.xlsx')
@@ -394,104 +395,42 @@ def summary_chart():
 def history_chart():
     MC_Graph.mc_graph.get_mc_graph()
 
-def simulation_app():
-    st.write("""
-    # Simulation Prediction App
-    """)
-    def user_input_features():
-        
-        col1, col2 = st.columns([1,1])
-        with col1 :
-            from datetime import date
-            Start_Time = date.today()
-            End_Time = date.today()
-            UPPER_BUS_PHASE_A = st.slider('UPPER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
-            UPPER_BUS_PHASE_B = st.slider('UPPER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
-            UPPER_BUS_PHASE_C = st.slider('UPPER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
-            LOWER_BUS_PHASE_A = st.slider('LOWER BUS PHASE A Temperature', 0.00, 100.00, 50.00)
-            LOWER_BUS_PHASE_B = st.slider('LOWER BUS PHASE B Temperature', 0.00, 100.00, 50.00)
-            LOWER_BUS_PHASE_C = st.slider('LOWER BUS PHASE C Temperature', 0.00, 100.00, 50.00)
-        with col2:
-            OUTGOING_PHASE_A = st.slider('OUTGOING PHASE A Temperature', 0.00, 100.00, 50.00)
-            OUTGOING_PHASE_B = st.slider('OUTGOING PHASE B Temperature', 0.00, 100.00, 50.00)
-            OUTGOING_PHASE_C = st.slider('OUTGOING PHASE C Temperature', 0.00, 100.00, 50.00)
-            UPPER_BUS_PD = st.slider('UPPER BUS PD', 0.00, 10000.00, 100.00)
-            LOWER_BUS_PD = st.slider('LOWER BUS PD', 0.00, 10000.00, 100.00)
-            SPOUT_PD = st.slider('SPOUT PD', 0.00, 10000.00, 100.00)
-            OUTGOING_PD = st.slider('OUTGOING PD', 0.00, 10000.00, 100.00)
-        data = {
-                'Start' : Start_Time,
-                'End' : End_Time,
-                'UPPER_BUS_PHASE_A': UPPER_BUS_PHASE_A,
-                'UPPER_BUS_PHASE_B': UPPER_BUS_PHASE_B,
-                'UPPER_BUS_PHASE_C': UPPER_BUS_PHASE_C,
-                'LOWER_BUS_PHASE_A': LOWER_BUS_PHASE_A,
-                'LOWER_BUS_PHASE_B': LOWER_BUS_PHASE_B,
-                'LOWER_BUS_PHASE_C': LOWER_BUS_PHASE_C,
-                'OUTGOING_PHASE_A' : OUTGOING_PHASE_A,
-                'OUTGOING_PHASE_B' : OUTGOING_PHASE_B,
-                'OUTGOING_PHASE_C' : OUTGOING_PHASE_C,
-                'UPPER_BUS_PD': UPPER_BUS_PD,
-                'LOWER_BUS_PD' : LOWER_BUS_PD,
-                'SPOUT_PD' : SPOUT_PD,
-                'OUTGOING_PD': OUTGOING_PD
-                }
+def tab_model_v0(status):
+    st.header("Model V0")
 
-        features = pd.DataFrame(data, index=[0])
-        return features
-    input_df = user_input_features()
-    # df = input_df.iloc[:]
-    # Displays the user input features
-    st.subheader('User Input features')
+    with st.container(border=True):
+        st.subheader("⚙️ Model Selection & Prediction")
+        clf = st_body()
 
-    st.write('Awaiting CSV file to be uploaded. Currently using example input parameters (shown below).')
-    st.write(input_df.iloc[:1])
-    
-    if input_df is not None:
-        # Reads in saved classification model
-        lstmodel = listmodel('model/')
-        # st.write(lstmodel)
-        tmp = [i.split('.')[0] for i in lstmodel]
-        col1, col2, col3 = st.columns([1,5,1])
-        with col2 :
-            option = st.selectbox('Select Model:',tmp)
-            st.write('You selected model: {}'.format(str(option)))
-            lstmodel[tmp.index(option)]
-        st_result(lstmodel[tmp.index(option)], input_df, True)
+    if clf is not None and status is True:
+        df = None
+        st_result(clf, df)
+    else:
+        st.info("Please upload files and select a prediction model.")
+
+    st.subheader("📊 Fleet Status Summary")
+    status_body()
+    summary_chart()
+
+    st.subheader("📈 History Chart")
+    history_chart()
 
 
 def main():
-    with st.sidebar:  
-            status = None
-            status, model = st_header(status)
+    with st.sidebar:
+        status = None
+        status, model = st_header(status)
 
-            # if status:
-            #     st.write(f"Selected model: {model}")
-            clf = st_body()
-            if clf is not None and status is True:
-                df = None
-                st_result(clf, df, False)
-            else:
-                st.write('Please upload files and select predection model!')
-                
-            
-            
+    tab_v3, tab_v0 = st.tabs(["Switchgear Health Index (Model V3)", "Model V0"])
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Summary", "Details", "Simulation","Switchgear Health Index"])
-    with tab1:
-        st.header("Summary")
-        status_body() 
-        summary_chart()
-    with tab2:
-        history_chart()
-    with tab3:
-        simulation_app()
-               
-    with tab4:
+    with tab_v3:
         #-------------------------------------------
         # addition v3
         #-------------------------------------------
         func_main()
+
+    with tab_v0:
+        tab_model_v0(status)
 
 
 

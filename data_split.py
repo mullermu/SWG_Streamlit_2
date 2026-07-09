@@ -93,18 +93,18 @@ class Data_Split(object):
         success = 0
 
         # ===== COLUMN DEFINITIONS =====
+        # Must match the real uploaded file's column count (18) — same
+        # schema as model v3's target_cols in data_processing.py. Model v0's
+        # own prediction step (model_predict.py's read_columns) only selects
+        # the 13 sensor columns it actually needs, so the extra POWER/
+        # VOLTAGE/FREQUENCY columns are written but simply left unused.
         colum = [
             "Start","End",
             "UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
             "LOWER_BUS_PHASE_A","LOWER_BUS_PHASE_B","LOWER_BUS_PHASE_C",
             "OUTGOING_PHASE_A","OUTGOING_PHASE_B","OUTGOING_PHASE_C",
-            "UPPER_BUS_PD","LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD"
-        ]
-
-        columnA16 = [
-            "Start","End",
-            "UPPER_BUS_PHASE_A","UPPER_BUS_PHASE_B","UPPER_BUS_PHASE_C",
-            "UPPER_BUS_PD","LOWER_BUS_PD","SPOUT_PD"
+            "UPPER_BUS_PD","LOWER_BUS_PD","SPOUT_PD","OUTGOING_PD",
+            "POWER","VOLTAGE","FREQUENCY"
         ]
 
         # ===== PROCESS ALL SHEETS (NO UI UPDATE HERE) =====
@@ -118,7 +118,7 @@ class Data_Split(object):
                     df1 = df1.iloc[17:]
                     df1.reset_index(drop=True, inplace=True)
                     df1.to_csv(f'{target_folder}/{sheet_name}.csv',
-                               header=columnA16,
+                               header=colum,
                                encoding='utf-8',
                                index=False)
 

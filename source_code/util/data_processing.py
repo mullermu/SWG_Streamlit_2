@@ -163,8 +163,12 @@ class split_and_savefile:
                     header=None
                 )
 
-                # Header location
-                header_row = 19 if sheet == "A15" else 18
+                # Header location — must match data_split.py's (Model v0) offset,
+                # which reads via pd.ExcelFile.parse() defaulting to header=0
+                # (implicitly consuming row 1), then .iloc[17:]/.iloc[18:] on top
+                # of that. Read here with header=None (no row consumed), so the
+                # equivalent raw-row offsets are one less than in data_split.py.
+                header_row = 18 if sheet == "A15" else 17
                 data_row = header_row + 1
 
                 df = df_raw.iloc[data_row:].reset_index(drop=True)

@@ -315,14 +315,17 @@ def create_last_results():
     # here: ~30 sheets x thousands of rows in normal mode can be a large
     # memory spike on a memory-constrained deployment.
     wb = openpyxl.Workbook(write_only=True)
-    for f_path, f_name in files:
+    progress = st.progress(0.0, text="Preparing last results...")
+    for i, (f_path, f_name) in enumerate(files):
         (f_short_name, f_extension) = os.path.splitext(f_name)
+        progress.progress(i / len(files), text=f"Preparing last results — {f_short_name} ({i + 1}/{len(files)})...")
         with open(os.path.join(f_path, f_name)) as f_input:
             # st.write(f_short_name)
             ws = wb.create_sheet(title=os.path.basename(f_short_name))
             for row in csv.reader(f_input):
                 ws.append(row)
     wb.save('output/Predicted Results/Last_Results.xlsx')
+    progress.progress(1.0, text="Last results ready ✅")
 def download_results():
         
     files = [os.path.split(filename) for filename in glob.glob("output/Predicted Results/*.csv")]
@@ -333,39 +336,48 @@ def download_results():
     ('Yes, This is new data.', 'No, Data was the same as the old one.','Replace all with the new one.'))
     saveBT = st.button('Save to Database')
     if saveToDB == 'Yes, This is new data.' and saveBT == True:
-        wb = openpyxl.load_workbook('output/Predicted Results/Results.xlsx')
-        for f_path, f_name in files:
-            (f_short_name, f_extension) = os.path.splitext(f_name)
-            with open(os.path.join(f_path, f_name)) as f_input:
-                csv_reader = csv.reader(f_input)
-                first_line = next(csv_reader)
-                if f_short_name not in wb.sheetnames:
-                    ws = wb.create_sheet(title=f_short_name)
-                    ws.append(first_line)
-                else:
-                    ws = wb[f_short_name]
-                for row in csv_reader:
-                    if row != first_line:
-                        ws.append(row)
-        wb.save('output/Predicted Results/Results.xlsx')
-        create_last_results()
-        st.write("Added to Database")
+        with st.spinner("Saving to database..."):
+            wb = openpyxl.load_workbook('output/Predicted Results/Results.xlsx')
+            progress = st.progress(0.0, text="Saving...")
+            for i, (f_path, f_name) in enumerate(files):
+                (f_short_name, f_extension) = os.path.splitext(f_name)
+                progress.progress(i / len(files), text=f"Saving {f_short_name} ({i + 1}/{len(files)})...")
+                with open(os.path.join(f_path, f_name)) as f_input:
+                    csv_reader = csv.reader(f_input)
+                    first_line = next(csv_reader)
+                    if f_short_name not in wb.sheetnames:
+                        ws = wb.create_sheet(title=f_short_name)
+                        ws.append(first_line)
+                    else:
+                        ws = wb[f_short_name]
+                    for row in csv_reader:
+                        if row != first_line:
+                            ws.append(row)
+            progress.progress(1.0, text="Writing workbook to disk...")
+            wb.save('output/Predicted Results/Results.xlsx')
+            create_last_results()
+        st.success("Added to Database ✅")
 
     elif saveToDB == 'No, Data was the same as the old one.' and saveBT == True:
-        st.write("Nothing saved")
-        create_last_results()
+        with st.spinner("Preparing last results..."):
+            create_last_results()
+        st.info("Nothing saved")
     elif saveToDB == 'Replace all with the new one.' and saveBT == True:
-        wb = openpyxl.Workbook(write_only=True)
-        for f_path, f_name in files:
-            (f_short_name, f_extension) = os.path.splitext(f_name)
-            with open(os.path.join(f_path, f_name)) as f_input:
-                # st.write(f_short_name)
-                ws = wb.create_sheet(title=os.path.basename(f_short_name))
-                for row in csv.reader(f_input):
-                    ws.append(row)
-        wb.save('output/Predicted Results/Results.xlsx')
-        st.write("Replaced to Database")
-        create_last_results()
+        with st.spinner("Replacing database..."):
+            wb = openpyxl.Workbook(write_only=True)
+            progress = st.progress(0.0, text="Saving...")
+            for i, (f_path, f_name) in enumerate(files):
+                (f_short_name, f_extension) = os.path.splitext(f_name)
+                progress.progress(i / len(files), text=f"Saving {f_short_name} ({i + 1}/{len(files)})...")
+                with open(os.path.join(f_path, f_name)) as f_input:
+                    # st.write(f_short_name)
+                    ws = wb.create_sheet(title=os.path.basename(f_short_name))
+                    for row in csv.reader(f_input):
+                        ws.append(row)
+            progress.progress(1.0, text="Writing workbook to disk...")
+            wb.save('output/Predicted Results/Results.xlsx')
+            create_last_results()
+        st.success("Replaced database ✅")
     
     downloadResults = st.radio(
     "Which file do you would like to download?",

@@ -709,19 +709,24 @@ SWITCHGEAR_OUTPUT_FOLDER = "data/output"
 SWITCHGEAR_DB_PATH = "data/switchgear_db/Results.xlsx"
 SWITCHGEAR_LAST_RESULTS_PATH = "data/switchgear_db/Last_Results.xlsx"
 
-def _build_workbook_from_csvs(files):
+def _build_workbook_from_csvs(files, progress_label="Saving"):
     # write_only streams rows straight to a temp file instead of keeping
     # every cell as an in-memory object across all sheets, which matters
     # here: ~31 sheets x thousands of rows in normal mode can be a large
     # memory spike on a memory-constrained deployment.
     wb = openpyxl.Workbook(write_only=True)
 
-    for f_path, f_name in files:
+    progress = st.progress(0.0, text=f"{progress_label}...")
+
+    for i, (f_path, f_name) in enumerate(files):
         f_short_name, _ = os.path.splitext(f_name)
+        progress.progress(i / len(files), text=f"{progress_label} — {f_short_name} ({i + 1}/{len(files)})...")
         with open(os.path.join(f_path, f_name)) as f_input:
             ws = wb.create_sheet(title=f_short_name)
             for row in csv.reader(f_input):
                 ws.append(row)
+
+    progress.progress(1.0, text=f"{progress_label} — done ✅")
 
     return wb
 
@@ -733,7 +738,7 @@ def create_last_results_switchgear(
 
     files = [os.path.split(p) for p in glob.glob(f"{output_folder}/*.csv")]
 
-    wb = _build_workbook_from_csvs(files)
+    wb = _build_workbook_from_csvs(files, progress_label="Preparing last results")
     wb.save(last_results_path)
 
 def save_and_download_results(
@@ -764,40 +769,48 @@ def save_and_download_results(
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
         if save_mode == "Yes, this is new data.":
-            if not os.path.exists(db_path):
-                wb = _build_workbook_from_csvs(files)
-            else:
-                wb = openpyxl.load_workbook(db_path)
+            with st.spinner("Saving to database..."):
+                if not os.path.exists(db_path):
+                    wb = _build_workbook_from_csvs(files)
+                else:
+                    wb = openpyxl.load_workbook(db_path)
 
-                for f_path, f_name in files:
-                    f_short_name, _ = os.path.splitext(f_name)
+                    progress = st.progress(0.0, text="Saving...")
 
-                    with open(os.path.join(f_path, f_name)) as f_input:
-                        csv_reader = csv.reader(f_input)
-                        first_line = next(csv_reader)
+                    for i, (f_path, f_name) in enumerate(files):
+                        f_short_name, _ = os.path.splitext(f_name)
+                        progress.progress(i / len(files), text=f"Saving {f_short_name} ({i + 1}/{len(files)})...")
 
-                        if f_short_name not in wb.sheetnames:
-                            ws = wb.create_sheet(title=f_short_name)
-                            ws.append(first_line)
-                        else:
-                            ws = wb[f_short_name]
+                        with open(os.path.join(f_path, f_name)) as f_input:
+                            csv_reader = csv.reader(f_input)
+                            first_line = next(csv_reader)
 
-                        for row in csv_reader:
-                            if row != first_line:
-                                ws.append(row)
+                            if f_short_name not in wb.sheetnames:
+                                ws = wb.create_sheet(title=f_short_name)
+                                ws.append(first_line)
+                            else:
+                                ws = wb[f_short_name]
 
-            wb.save(db_path)
-            create_last_results_switchgear(output_folder, last_results_path)
+                            for row in csv_reader:
+                                if row != first_line:
+                                    ws.append(row)
+
+                    progress.progress(1.0, text="Writing workbook to disk...")
+
+                wb.save(db_path)
+                create_last_results_switchgear(output_folder, last_results_path)
             st.success("Added to Database ✅")
 
         elif save_mode == "No, data was the same as the old one.":
+            with st.spinner("Preparing last results..."):
+                create_last_results_switchgear(output_folder, last_results_path)
             st.info("Nothing saved")
-            create_last_results_switchgear(output_folder, last_results_path)
 
         elif save_mode == "Replace all with the new one.":
-            wb = _build_workbook_from_csvs(files)
-            wb.save(db_path)
-            create_last_results_switchgear(output_folder, last_results_path)
+            with st.spinner("Replacing database..."):
+                wb = _build_workbook_from_csvs(files)
+                wb.save(db_path)
+                create_last_results_switchgear(output_folder, last_results_path)
             st.success("Replaced database ✅")
 
     download_choice = st.radio(

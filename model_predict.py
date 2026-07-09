@@ -333,8 +333,13 @@ class get_predict_result(object):
                 # ------------------------------------------------
                 z = model.predict(rawdf_rename[read_columns])
 
+                # index=rawdf.index: rawdf's index is "Start" (set via
+                # index_col=0 above), not the default 0,1,2,... range. Without
+                # matching indices here, concat(axis=1) aligns by index and,
+                # finding no overlap, appends Status as new rows at the bottom
+                # instead of as a new column on the existing rows.
                 res = pd.concat(
-                    [rawdf, pd.DataFrame(z + 1, columns=["Status"])],
+                    [rawdf, pd.DataFrame(z + 1, columns=["Status"], index=rawdf.index)],
                     axis=1
                 )
 

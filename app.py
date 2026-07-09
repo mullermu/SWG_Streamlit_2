@@ -300,8 +300,6 @@ def st_result(clf, df):
     if clf is not None:
         df = None
         model_predict.get_predict_result.getResult(clf, df, False)
-        st.subheader("💾 Save & Download Results")
-        download_results()
         # model = joblib.load(os.path.join("../model/",clf))
         # z = model.predict(X)
         # res = pd.concat([data,pd.DataFrame(z,columns=['Status'])],axis=1)
@@ -407,22 +405,53 @@ def summary_chart():
 def history_chart():
     MC_Graph.mc_graph.get_mc_graph()
 
+def preview_uploaded_data_v0(folder="Temp"):
+    files = sorted(glob.glob(f"{folder}/*.csv"))
+
+    if not files:
+        return
+
+    machine_names = [os.path.splitext(os.path.basename(f))[0] for f in files]
+
+    with st.expander("📄 Preview Uploaded Data", expanded=False):
+        selected_machine = st.selectbox(
+            "Select machine to preview",
+            machine_names,
+            key="v0_preview_machine"
+        )
+
+        try:
+            df = pd.read_csv(os.path.join(folder, f"{selected_machine}.csv"))
+        except Exception as e:
+            st.error(f"Could not read {selected_machine}.csv: {e}")
+            return
+
+        st.caption(f"{len(df)} rows × {len(df.columns)} columns")
+        st.dataframe(df, width='stretch')
+
 def tab_model_v0(status):
     st.header("Model V0")
+
+    preview_uploaded_data_v0()
 
     with st.container(border=True):
         st.subheader("⚙️ Model Selection & Prediction")
         clf = st_body()
 
+    predicted = False
     if clf is not None and status is True:
-        df = None
-        st_result(clf, df)
+        st_result(clf, None)
+        predicted = True
     else:
         st.info("Please upload files and select a prediction model.")
 
     st.subheader("📊 Fleet Status Summary")
     status_body()
     summary_chart()
+
+    if predicted:
+        st.subheader("💾 Save & Download Results")
+        download_results()
 
     st.subheader("📈 History Chart")
     history_chart()

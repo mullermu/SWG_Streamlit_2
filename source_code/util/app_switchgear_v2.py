@@ -254,7 +254,10 @@ def status_risk(path_output="data/output"):
         if os.path.exists(path):
 
             try:
-                df = pd.read_csv(path)
+                # Only date/health_index are ever used by compute_machine_status()
+                # below — avoids parsing the other ~38 unused columns on every
+                # rerun, across every machine.
+                df = pd.read_csv(path, usecols=["date", "health_index"])
             except pd.errors.EmptyDataError:
                 df = pd.DataFrame()
 

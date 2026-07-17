@@ -278,7 +278,7 @@ def st_body():
             submitted = st.form_submit_button('selected model and predict')
             if submitted:
                 st.write('You selected model: {}'.format(str(option)))
-            return lstmodel[tmp.index(option)]
+            return lstmodel[tmp.index(option)], submitted
                 
     # import requests
     # from bs4 import BeautifulSoup
@@ -436,22 +436,30 @@ def tab_model_v0(status):
 
     with st.container(border=True):
         st.subheader("⚙️ Model Selection & Prediction")
-        clf = st_body()
+        clf, submitted = st_body()
 
-    predicted = False
-    if clf is not None and status is True:
+    # Only run the (heavyweight: load a joblib model + predict over every
+    # Temp/ file) prediction on the exact rerun the button was actually
+    # clicked — clf itself is never None (the form always has some model
+    # selected), so gating on that alone would re-run this on every single
+    # interaction anywhere in the app.
+    if submitted and clf is not None and status is True:
         st_result(clf, None)
-        predicted = True
-    else:
-        st.info("Please upload files and select a prediction model.")
 
     st.subheader("📊 Fleet Status Summary")
     status_body()
     summary_chart()
 
-    if predicted:
+    # Show Save & Download based on whether prediction output actually
+    # exists on disk (persists across reruns), not the one-shot `submitted`
+    # flag — otherwise interacting with this section's own radio/save
+    # button would make the whole section disappear on the next rerun.
+    has_predicted_output = bool(glob.glob("output/Predicted Results/A*.csv"))
+    if has_predicted_output:
         st.subheader("💾 Save & Download Results")
         download_results()
+    else:
+        st.info("Please upload files and select a prediction model, then click 'selected model and predict'.")
 
     st.subheader("📈 History Chart")
     history_chart()
